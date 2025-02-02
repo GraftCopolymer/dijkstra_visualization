@@ -1,18 +1,67 @@
+
 /* 页面标题栏 */
 .titleBar{
     display: flex;
+    position: relative;
     justify-content: center;
     align-items: center;
     width: 100%;
-    height: 30px;
-    padding: 30px;
+    height: var(--titleBarHeight);
+    padding: var(--titleBarPadding);
     font-size: 1.5em;
     background-color: rgba(128, 128, 128, 0.196);
     backdrop-filter: blur(10px);
+    z-index: 1000;
 }
 
 /* 可视化演示主体页面 */
 .playground{
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
+}
+
+/* 悬浮式控制面板 */
+.controlPanel{
+    position: fixed;
+    top: 90px;
+    left: 30px;
+    border-radius: 10px;
+    background-color: grey;
+    width: 370px;
+    height: 600px;
+    z-index: 1;
+    overflow: hidden;
+}
+
+/* 悬浮式控制面板的标题栏 */
+.panelTitle{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: rgb(79, 79, 79);
+}
+
+/* 悬浮式控制面板的标题栏左侧缩小按钮 */
+.minimizeButton{
+    background-color: yellow;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    left: 5px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+}
+
+/* 缩小图标 */
+.minimizeButton:hover:after{
+    content: "";
+    background: url('../../../public/minimize.svg');
+    background-size: contain;
+    width: 50%;
+    height: 50%;
+    color: black;
 }

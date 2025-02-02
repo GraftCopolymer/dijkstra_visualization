@@ -11,5 +11,6 @@ export default function VisualizationLayout({
 } : Readonly<{children: React.ReactNode}>){
     return <div>
         <TitleBar />
+        {children}
     </div>
 }

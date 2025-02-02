@@ -1,6 +1,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --titleBarHeight: 30px;
+  --titleBarPadding: 30px;
 }
 
 @media (prefers-color-scheme: dark) {
