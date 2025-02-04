@@ -1,0 +1,16 @@
+.darkButton{
+    background-color: #555555;
+    border-color: #777777;
+    border-radius: 8px;
+    border-style: solid;
+    padding: 4px;
+    margin: 4px;
+}
+
+.darkButton:active:hover, .darkButton:active{
+    background-color: #666666;
+}
+
+.darkButton:hover{
+    background-color: #777777;
+}

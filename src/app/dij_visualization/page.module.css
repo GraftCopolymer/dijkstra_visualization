@@ -29,8 +29,9 @@
     background-color: grey;
     width: 370px;
     height: 600px;
-    z-index: 1;
+    z-index: 999;
     overflow: hidden;
+    box-shadow: 2px 1px 8px 1px rgba(0,0,0,0.3);
 }
 
 /* 悬浮式控制面板的标题栏 */
@@ -40,6 +41,7 @@
     align-items: center;
     padding: 10px;
     background-color: rgb(79, 79, 79);
+    cursor: all-scroll;
 }
 
 /* 悬浮式控制面板的标题栏左侧缩小按钮 */
@@ -54,6 +56,19 @@
     width: 17px;
     height: 17px;
     border-radius: 50%;
+    cursor: default;
+}
+
+/* 悬浮式面板控制项基本设置 */
+.controlItemContainer{
+    margin: 10px;
+}
+.controlItemTitle{
+    font-weight: bold;
+    font-size: 18px;
+    padding: 4px;
+    border-radius: 8px;
+    background-color: rgb(104, 104, 104);
 }
 
 /* 缩小图标 */
@@ -64,4 +79,36 @@
     width: 50%;
     height: 50%;
     color: black;
+}
+
+/* 无限画布的背景 */
+.infiniteBackground{
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(83, 83, 83);
+    overflow: hidden;
+    z-index: 100;
+}
+
+/* 无限画布的中心点 */
+.centerPoint{
+    border-radius: 50%;
+    z-index: 101;
+    position: relative;
+}
+
+/* svg画布 */
+.svgCanvas{
+    width: 100vw;
+    height: 100vh;
+    z-index: 100;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+.svgOriginPoint{
+    transform: translate(50%, 50%);
 }

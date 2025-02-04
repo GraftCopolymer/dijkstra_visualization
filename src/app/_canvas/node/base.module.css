@@ -1,0 +1,20 @@
+.node{
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    border-width: 2px;
+    border-color: transparent;
+    border-style: solid;
+    transform: translate(-50%, -50%);
+}
+.node:hover{
+    border-color: white;
+    border-style: solid;
+    border-width: 2px;
+}
+
+.nodeText{
+    font-size: 18px;
+}
