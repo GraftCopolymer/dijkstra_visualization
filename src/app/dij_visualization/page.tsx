@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import style from './page.module.css'
-import InfiniteCanvas, { ControlPanel, InfiniteCanvasAPI } from './infinite_canvas'
+import InfiniteCanvas, { InfiniteCanvasAPI } from './infinite_canvas'
 import CanvasEventEmitter, { AddDrawableEvent, CanvasEvents } from '../_canvas/events'
+import ControlPanel from './control_panel'
 
 export default function DijPlayground(){
     const canvasRef = useRef<InfiniteCanvasAPI>(null)
