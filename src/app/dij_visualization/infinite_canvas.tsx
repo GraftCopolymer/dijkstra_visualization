@@ -4,22 +4,11 @@ import Drawable from '../_canvas/drawable'
 import style from './page.module.css'
 import { useImmer } from 'use-immer'
 import DarkButton from '../_widgets/dark_button/dark_button'
-import { PlusOutlined } from '@ant-design/icons'
+import { PlusOutlined, WindowsOutlined } from '@ant-design/icons'
 import Node, { NodeBuilder } from '../_canvas/node/node'
 import SvgDrawable from '../_canvas/svg_drawable'
 import Line from '../_canvas/line/line'
 import CanvasEventEmitter, { CanvasEvents } from '../_canvas/events'
-
-// interface ColorSet{
-//     unvisitedColor: string
-//     currentColor: string
-//     visitedColor: string
-// }
-
-interface ColorAction{
-    id: number
-    value: string
-}
 
 export interface InfiniteCanvasAPI{
     draw: (drawable: Drawable) => void
@@ -32,36 +21,20 @@ export interface InfiniteCanvasAPI{
     // modifyColor: (action: ColorAction) => void
 }
 
-// function colorReducer(colors: ColorSet, action: ColorAction): ColorSet{
-//     switch(action.type){
-//         case "unvisitedColor": {
-//             return {
-//                 ...colors,
-//                 unvisitedColor: action.value
-//             }
-//         }
-//         case "currentColor": {
-//             return {
-//                 ...colors,
-//                 currentColor: action.value
-//             }
-//         }
-//         case "visitedColor": {
-//             return {
-//                 ...colors,
-//                 visitedColor: action.value
-//             }
-//         }
-//     }
-//     return colors
-// }
+function getTitleBarHeight(): number{
+    const rootStyle = getComputedStyle(document.documentElement)
+    return parseInt(
+        rootStyle.getPropertyValue('--titleBarHeight')
+        .slice(0,rootStyle.getPropertyValue('--titleBarHeight').indexOf('px'))
+    )
+    +
+    parseInt(
+        rootStyle.getPropertyValue('--titleBarPadding')
+        .slice(0, rootStyle.getPropertyValue('--titleBarPadding').indexOf('px'))
+    ) 
+}
 
 export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
-    // const [colors, dispatch] = useReducer(colorReducer, {
-    //     unvisitedColor: "transparent",
-    //     currentColor: "green",
-    //     visitedColor: "blue"
-    // })
     const [drawableList, setDrawableList] = useState([] as Drawable[])
     const [svgDrawableList, setSvgDrawableLIst] = useState([] as SvgDrawable[])
     const drawableElementList = drawableList.map((d) => {
@@ -72,6 +45,8 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         </div>
         return renderObj
     })
+    // 画布尺寸
+    const [canvasSize, setCanvasSize] = useState({width: 0, height: 0} as {width: number, height: number})
 
     const svgDrawableElementList = svgDrawableList.map((s) => {
         const renderObj = <g>
@@ -111,17 +86,17 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         let newx = translated.x - draggingOffset.current.x
         let newy = translated.y - draggingOffset.current.y
         // 检测屏幕边缘
-        if(newx - draggingDrawable.width / 2 <= -window.innerWidth / 2){
-            newx = -window.innerWidth / 2 + draggingDrawable.width / 2
+        if(newx - draggingDrawable.width / 2 <= -canvasSize.width / 2){
+            newx = -canvasSize.width / 2 + draggingDrawable.width / 2
         }
-        if(newx + draggingDrawable.width / 2 >= window.innerWidth / 2){
-            newx = window.innerWidth / 2 - draggingDrawable.width / 2
+        if(newx + draggingDrawable.width / 2 >= canvasSize.width / 2){
+            newx = canvasSize.width / 2 - draggingDrawable.width / 2
         }
-        if(newy - draggingDrawable.height / 2 <= -window.innerHeight / 2){
-            newy = -window.innerHeight / 2 + draggingDrawable.height / 2
+        if(newy - draggingDrawable.height / 2 <= -canvasSize.height / 2){
+            newy = -canvasSize.height / 2 + draggingDrawable.height / 2
         }
-        if(newy + draggingDrawable.height / 2 >= window.innerHeight / 2){
-            newy = window.innerHeight / 2 - draggingDrawable.height / 2
+        if(newy + draggingDrawable.height / 2 >= canvasSize.height / 2){
+            newy = canvasSize.height / 2 - draggingDrawable.height / 2
         }
 
         setDrawableList(drawableList.map(d => {
@@ -190,10 +165,6 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         return drawableList
     }
 
-    // function modifyColor(action: ColorAction){
-    //     dispatch(action)
-    // }
-
     /// 向外界暴露绘图API
     useImperativeHandle(ref, ()=>{
         return {
@@ -204,6 +175,21 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
             drawLine
         }
     })
+
+    useEffect(()=>{
+        // 初始化窗口尺寸
+        setCanvasSize({
+            width: window.innerWidth,
+            height: window.innerHeight - getTitleBarHeight()
+        }) 
+        // 更新窗口尺寸
+        window.addEventListener("resize", ()=>{
+            setCanvasSize({
+                width: window.innerWidth,
+                height: window.innerHeight - getTitleBarHeight()
+            })
+        })
+    }, [])
 
     return <div className={style.infiniteBackground}>
         
@@ -246,19 +232,10 @@ export function ControlPanel({
         if(panelRef.current){
             // 初始化控制面板尺寸
             const style = getComputedStyle(panelRef.current)
-            const rootStyle = getComputedStyle(document.documentElement)
             setWidth(parseInt(style.width.slice(0,style.width.indexOf('px'))))
             setHeight(parseInt(style.height.slice(0,style.height.indexOf('px'))))
             setTitleHeight(
-                parseInt(
-                    rootStyle.getPropertyValue('--titleBarHeight')
-                    .slice(0,rootStyle.getPropertyValue('--titleBarHeight').indexOf('px'))
-                )
-                +
-                parseInt(
-                    rootStyle.getPropertyValue('--titleBarPadding')
-                    .slice(0, rootStyle.getPropertyValue('--titleBarPadding').indexOf('px'))
-                ) 
+                getTitleBarHeight()
             )
         }
     }, [])

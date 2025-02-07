@@ -8,6 +8,7 @@ export default function Home() {
   useEffect(()=>{
     // 直接跳转到算法可视化页面
     router.push("/dij_visualization")
+    
   }, [])
 
   return (

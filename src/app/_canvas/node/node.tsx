@@ -115,6 +115,8 @@ export class NodeBuilder{
 
     radius(radius: number){
         this.node.radius = radius
+        this.node.width = radius
+        this.node.height = radius
         return this
     }
 
