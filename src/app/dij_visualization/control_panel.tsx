@@ -1,18 +1,43 @@
 'use client'
 
-import { JSX, RefObject, useEffect, useRef, useState } from "react"
+import { JSX, RefObject, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { InfiniteCanvasAPI } from "./infinite_canvas"
 import GraphUtils from "../_utils/graph_utils"
-import { NodeBuilder } from "../_canvas/node/node"
+import Node, { NodeBuilder } from "../_canvas/node/node"
 import style from './page.module.css'
 import DarkButton from "../_widgets/dark_button/dark_button"
 import { PlusOutlined, RightOutlined } from "@ant-design/icons"
 
+export interface ControlPanelAPI{
+    /// 展示指定的Node对象的信息
+    displayNode: (node: Node) => void
+}
+
+function NodeDetail({node}: {node: Node}){
+    const [data, setData] = useState({
+        position: {x: node.position.x, y: node.position.y}
+    })
+
+    useEffect(()=>{
+        console.log("JHHHHH")
+        setData({
+            position: {x: node.position.x, y: node.position.y}
+        })
+    }, [node.position.x, node.position.y])
+
+    return <div>
+        <p>坐标</p>
+        <p>[{data.position.x}, {data.position.y}]</p>
+    </div>
+}
+
 /// 悬浮式控制面板
 export default function ControlPanel({
     canvasRef,
+    panelAPIRef
 }: {
     canvasRef: RefObject<InfiniteCanvasAPI | null>,
+    panelAPIRef?: RefObject<ControlPanelAPI | null>
 }){
     // 控制面板尺寸
     const [width, setWidth] = useState(0)
@@ -28,6 +53,25 @@ export default function ControlPanel({
 
     const panelRef = useRef<HTMLDivElement>(null)
     const panelTransition = useRef('none')
+
+    /// 控制面板显示的内容
+    const panelContents = useRef<{ [key: string]: (() => JSX.Element) | JSX.Element}>({
+        'default': () => {
+            return createControlItem(
+                "创建结点",
+                <>
+                    <DarkButton onClick={createNode}>
+                        快速创建 <PlusOutlined />
+                    </DarkButton>
+                </>
+            )
+        },
+        'node': () => {
+            return <div></div>
+        }
+    })
+    /// 控制面板当前显示的内容
+    const [currentContent, setCurrentContent] = useState('default')
 
     useEffect(()=>{
         if(panelRef.current){
@@ -129,6 +173,21 @@ export default function ControlPanel({
             .build()
         canvasRef.current!.drawNode(node)
     }
+
+    /// 控制面板API
+    function displayNode(node: Node){
+        console.log(node)
+        panelContents.current['node'] = ()=>{
+            return <NodeDetail node={node}></NodeDetail>
+        }
+        setCurrentContent('node')
+    }
+
+    useImperativeHandle(panelAPIRef, ()=>{
+        return {
+            displayNode
+        }
+    })
     
     if(minimize){
         return <div className={style.minimizedControlPanel} onClick={toggleMinimize}>
@@ -155,14 +214,7 @@ export default function ControlPanel({
         </div>
         <div>
             {
-                createControlItem(
-                    "创建结点",
-                    <>
-                        <DarkButton onClick={createNode}>
-                            快速创建 <PlusOutlined />
-                        </DarkButton>
-                    </>
-                )
+                panelContents.current[currentContent] instanceof Function ? panelContents.current[currentContent]() : panelContents.current[currentContent]
             }
         </div>
     </div>

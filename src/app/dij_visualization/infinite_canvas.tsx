@@ -5,7 +5,7 @@ import style from './page.module.css'
 import Node from '../_canvas/node/node'
 import SvgDrawable from '../_canvas/svg_drawable'
 import Line from '../_canvas/line/line'
-import CanvasEventEmitter, { CanvasEvents } from '../_canvas/events'
+import CanvasEventEmitter, { CanvasEvents, ClickDrawableEvent } from '../_canvas/events'
 
 export interface InfiniteCanvasAPI{
     draw: (drawable: Drawable) => void
@@ -15,27 +15,19 @@ export interface InfiniteCanvasAPI{
     /// 绘制直线
     drawLine: (line: Line) => void
     getDrawable: () => Drawable[]
-    // modifyColor: (action: ColorAction) => void
-}
-
-function getTitleBarHeight(): number{
-    const rootStyle = getComputedStyle(document.documentElement)
-    return parseInt(
-        rootStyle.getPropertyValue('--titleBarHeight')
-        .slice(0,rootStyle.getPropertyValue('--titleBarHeight').indexOf('px'))
-    )
-    +
-    parseInt(
-        rootStyle.getPropertyValue('--titleBarPadding')
-        .slice(0, rootStyle.getPropertyValue('--titleBarPadding').indexOf('px'))
-    ) 
 }
 
 export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
+    // 上下文菜单
+    const contextMenu = useRef(null)
     const [drawableList, setDrawableList] = useState([] as Drawable[])
     const [svgDrawableList, setSvgDrawableLIst] = useState([] as SvgDrawable[])
     const drawableElementList = drawableList.map((d) => {
-        const renderObj = <div onMouseDown={(e: any) => {onDragDrawable(e, d)}} key={d.getId()} style={{
+        const renderObj = <div 
+        onMouseDown={(e: any) => {onDragDrawable(e, d)}} 
+        onClick={(e: any) => {onClickDrawable(e, d)}}
+        key={d.getId()} 
+        style={{
             position: "absolute",
         }}>
             {d.getJSXElement()}
@@ -55,6 +47,11 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
     // 当前被拖动的Drawable对象，若为null则没有被拖动的对象
     const [draggingDrawable, setDraggingDrawable] = useState<Drawable | null>(null)
     const draggingOffset = useRef({x: 0, y: 0})
+
+    function onClickDrawable(e: MouseEvent, drawable: Drawable){
+        // 派发可绘制对象被点击的事件
+        CanvasEventEmitter.publish<ClickDrawableEvent>(CanvasEvents.clickDrawableEvent, {context: drawable})
+    }
 
     function onDragDrawable(e: any, drawable: Drawable){
         e.stopPropagation()
@@ -177,19 +174,18 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         // 初始化窗口尺寸
         setCanvasSize({
             width: window.innerWidth,
-            height: window.innerHeight - getTitleBarHeight()
+            height: window.innerHeight
         }) 
         // 更新窗口尺寸
         window.addEventListener("resize", ()=>{
             setCanvasSize({
                 width: window.innerWidth,
-                height: window.innerHeight - getTitleBarHeight()
+                height: window.innerHeight
             })
         })
     }, [])
 
     return <div className={style.infiniteBackground}>
-        
         {
             // 画布中心点(不可见)
         }

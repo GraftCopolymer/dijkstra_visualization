@@ -7,6 +7,7 @@ export const CanvasEvents = {
     addSvgDrawableEvent: "addSvgDrawableEvent",
     removeDrawableEvent: "removeDrawableEvent",
     removeSvgDrawableEvent: "removeSvgDrawableEvent",
+    clickDrawableEvent: "clickDrawableEvent"
 }
 
 type EventCallBack<T extends CanvasEvent = CanvasEvent> = (context: T) => void
@@ -57,6 +58,26 @@ export interface AddDrawableEvent extends CanvasEvent{
     context: Drawable
 }
 
+/// 开始移动可绘制对象
+export interface StartMoveDrawableEvent extends CanvasEvent{
+    context: Drawable
+}
+
+/// 移动可绘制对象
+export interface MovingDrawableEvent extends CanvasEvent{
+    context: Drawable
+}
+
+/// 可绘制对象移动结束
+export interface StopMovingDrawableEvent extends CanvasEvent{
+    context: Drawable
+}
+
+/// 点击可绘制对象
+export interface ClickDrawableEvent extends CanvasEvent{
+    context: Drawable
+}
+
 /// 添加可绘制Svg对象
 export interface AddSvgDrawableEvent{
     svgDrawable: SvgDrawable
@@ -71,3 +92,5 @@ export interface RemoveDrawableEvent{
 export interface RemoveSvgDrawableEvent{
     svgDrawable: SvgDrawable
 }
+
+

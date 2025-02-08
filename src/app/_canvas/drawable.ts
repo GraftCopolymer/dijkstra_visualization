@@ -2,15 +2,12 @@ import { CSSProperties, JSX } from "react"
 
 export default interface Drawable{
     color: string
-    position: Coordinate
+    _position: Coordinate
     zIndex: number
     opacity: number
     width: number,
     height: number,
     id: number
-    
-    getPosition: () => Coordinate
-    setPosition: (p: Coordinate) => void
 
 
     getColor: () => string

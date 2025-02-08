@@ -2,10 +2,11 @@ import { CSSProperties, JSX } from "react"
 import Drawable from "../drawable"
 import IdGenerator from "../id_generator"
 import style from './base.module.css'
+import Listenable, { ObserverCallBack } from "../listenable"
 
 /// 画布节点
-export default class Node implements Drawable{
-    public position: Coordinate
+export default class Node implements Drawable, Listenable{
+    public _position: Coordinate
     public radius: number
     public width: number
     public height: number
@@ -15,8 +16,10 @@ export default class Node implements Drawable{
     public id: number
     public name: string
 
+    public observers: (() => void)[]
+
     constructor(id: number, name?: string){
-        this.position = {x: 0, y: 0}
+        this._position = {x: 0, y: 0}
         this.radius = 5
         this.width = this.radius
         this.height = this.radius
@@ -25,7 +28,18 @@ export default class Node implements Drawable{
         this.opacity = 1
         this.id = id
         this.name = name ?? `${id}` 
+        this.observers = []
     }
+    
+    addListener(cb: ObserverCallBack){
+        this.observers.push(cb)
+    }
+    removeListener(cb: ObserverCallBack){
+        this.observers = this.observers.filter((o) => o !== cb)
+    }
+
+
+    setChild?: ((c: JSX.Element) => void) | undefined
 
     getDynamicStyle(): CSSProperties {
         const css: CSSProperties = {
@@ -78,11 +92,12 @@ export default class Node implements Drawable{
         this.opacity = opacity
     }
 
-    getPosition(): Coordinate {
-        return this.position
+    get position(){
+        return this._position
     }
-    setPosition(coor: Coordinate){
-        this.position = coor
+
+    set position(pos: Coordinate){
+        this._position = pos
     }
 
     getId(){
