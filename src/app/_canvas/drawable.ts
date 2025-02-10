@@ -1,30 +1,30 @@
 import { CSSProperties, JSX } from "react"
 
 export default interface Drawable{
-    color: string
-    _position: Coordinate
-    zIndex: number
-    opacity: number
-    width: number,
-    height: number,
-    id: number
+    get position(): Coordinate
+    set position(pos: Coordinate)
 
+    get opacity(): number
+    set opacity(o: number)
 
-    getColor: () => string
-    setColor: (c: string) => void
+    get zIndex(): number
+    set zIndex(zIndex: number)
 
-    getZIndex: () => number
-    setZIndex: (z: number) => void
+    get width(): number
+    set width(width: number)
 
-    getOpacity: () => number
-    setOpacity: (o: number) => void
+    get height(): number
+    set height(height: number)
+
+    get id(): number
+    set id(id: number)
+
+    get color(): string
+    set color(color: string)
 
     getDynamicStyle: () => CSSProperties
     getJSXElement: () => JSX.Element
 
     getChild?: () => JSX.Element | null
     setChild?: (c: JSX.Element) => void 
-
-    getId: () => number
-    setId: (id: number) => void
 }

@@ -3,39 +3,166 @@ import Drawable from "../drawable"
 import IdGenerator from "../id_generator"
 import style from './base.module.css'
 import Listenable, { ObserverCallBack } from "../listenable"
+import Line from "../line/line"
 
 /// 画布节点
-export default class Node implements Drawable, Listenable{
-    public _position: Coordinate
-    public radius: number
-    public width: number
-    public height: number
-    public color: string
-    public zIndex: number
-    public opacity: number
-    public id: number
-    public name: string
-
-    public observers: (() => void)[]
+export default class Node extends Listenable implements Drawable{
+    private _position: Coordinate
+    private _radius: number
+    private _width: number
+    private _height: number
+    private _color: string
+    private _zIndex: number
+    private _opacity: number
+    private _id: number
+    private _name: string
+    // 连接到该点的线段集合
+    // start表示以该点作为起点的线段，end表示以该点作为终点的线段
+    private _lines: {"start": Line[], "end": Line[]}
 
     constructor(id: number, name?: string){
+        super()
         this._position = {x: 0, y: 0}
-        this.radius = 5
-        this.width = this.radius
-        this.height = this.radius
-        this.color = "blue"
-        this.zIndex = 101
-        this.opacity = 1
-        this.id = id
-        this.name = name ?? `${id}` 
-        this.observers = []
+        this._radius = 5
+        this._width = this._radius
+        this._height = this._radius
+        this._color = "blue"
+        this._zIndex = 101
+        this._opacity = 1
+        this._id = id
+        this._name = name ?? `${id}` 
+        this._lines = {
+            "start": [],
+            "end": []
+        }
+    }
+
+    get opacity(): number {
+        return this._opacity
+    }
+    set opacity(o: number) {
+        this._opacity = o
+        this.notifyListeners()
     }
     
-    addListener(cb: ObserverCallBack){
-        this.observers.push(cb)
+    get zIndex(): number {
+        return this._zIndex
     }
-    removeListener(cb: ObserverCallBack){
-        this.observers = this.observers.filter((o) => o !== cb)
+    set zIndex(zIndex: number) {
+        this._zIndex = zIndex
+        this.notifyListeners()
+    }
+
+    get width(): number {
+        return this._radius
+    }
+    set width(width: number) {
+        this._radius = width
+        this._height = width
+        this._width = width
+        this.notifyListeners()
+    }
+
+    get height(): number {
+        return this._radius
+    }
+    set height(height: number) {
+        this._radius = height
+        this._height = height
+        this._width = height
+        this.notifyListeners()
+    }
+
+    get radius(){
+        return this._radius
+    }
+    set radius(radius: number){
+        this._width = radius
+        this._height = radius
+        this._radius = radius
+        this.notifyListeners()
+    }
+
+    get id(): number {
+        return this._id
+    }
+    set id(id: number) {
+        this._id = id
+        this.notifyListeners()
+    }
+
+    get color(): string {
+        return this._color
+    }
+    set color(color: string) {
+        this._color = color
+        this.notifyListeners()
+    }
+
+    get position(){
+        return this._position
+    }
+    set position(pos: Coordinate){
+        this._position = pos
+        this.notifyListeners()
+    }
+
+    get name(){
+        return this._name
+    }
+    set name(name: string){
+        this._name = name
+        this.notifyListeners()
+    }
+
+    get lines(){
+        return this._lines
+    }
+    set lines(lines: {"start": Line[], "end": Line[]}){
+        this._lines = lines
+        this.notifyListeners()
+    }
+    // 将线段作为起点添加
+    addAsStart(line: Line){
+        // 检查该直线是否已经存在
+        if(this._lines.start.some((value) => {
+            value.id === line.id
+        })){
+            return
+        }
+        if(this._lines.end.some((value)=>{
+            value.id === line.id
+        })){
+            return
+        }
+        this._lines.start.push(line)
+        this.notifyListeners()
+    }
+    // 将线段作为终点添加
+    addAsEnd(line: Line){
+        // 检查该直线是否已经存在
+        if(this._lines.end.some((value) => {
+            value.id === line.id
+        })){
+            return
+        }
+        if(this._lines.start.some((value)=>{
+            value.id === line.id
+        })){
+            return
+        }
+        this._lines.end.push(line)
+        this.notifyListeners()
+    }
+    // 删除作为终点的直线
+    removeEndLine(line: Line){
+        this._lines.end = this._lines.end.filter((l) => l.id !== line.id)
+        this.notifyListeners()
+    }
+    // 删除作为起点的直线
+    removeStartLine(line: Line){
+        this._lines.start = this._lines.start.filter((l) => l.id !== line.id)
+        this.notifyListeners()
     }
 
 
@@ -45,8 +172,8 @@ export default class Node implements Drawable, Listenable{
         const css: CSSProperties = {
             backgroundColor: this.color,
             zIndex: this.zIndex,
-            width: this.radius,
-            height: this.radius,
+            width: this._radius,
+            height: this._radius,
             left: `${this.position.x}px`,
             top: `${this.position.y}px`,
         }
@@ -57,7 +184,7 @@ export default class Node implements Drawable, Listenable{
         return <div
         style={this.getDynamicStyle()}
         className={style.node}
-        key={this.getId()}>
+        key={this.id}>
             {
                 this.getChild()
             }
@@ -70,42 +197,7 @@ export default class Node implements Drawable, Listenable{
         </div>
     }
 
-    getColor(): string {
-        return this.color
-    }
-    setColor(color: string){
-        this.color = color
-    }
-
-
-    getZIndex(): number {
-        return this.zIndex
-    }
-    setZIndex(zIndex: number){
-        this.zIndex = zIndex
-    }
-
-    getOpacity(): number {
-        return this.opacity
-    }
-    setOpacity(opacity: number){
-        this.opacity = opacity
-    }
-
-    get position(){
-        return this._position
-    }
-
-    set position(pos: Coordinate){
-        this._position = pos
-    }
-
-    getId(){
-        return this.id
-    }
-    setId(id: number){
-        this.id = id
-    }
+    
 }
 
 export class NodeBuilder{

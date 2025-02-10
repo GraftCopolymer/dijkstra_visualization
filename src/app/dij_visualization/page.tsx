@@ -13,16 +13,17 @@ export default function DijPlayground(){
 
     useEffect(()=>{
         CanvasEventEmitter.subscribe<AddDrawableEvent>(CanvasEvents.addDrawableEvent, (event) => {
-            console.log("新增结点:")
             console.log(event.context)
         })
         CanvasEventEmitter.subscribe<ClickDrawableEvent>(CanvasEvents.clickDrawableEvent, (event) => {
-            console.log("检测到点击了Drawable")
             if(event.context instanceof Node){
-                console.log("检测到点击了Node")
                 if(!panelRefAPI.current) return
-                console.log("检测到显示节点信息")
                 panelRefAPI.current.displayNode(event.context)
+            }
+        })
+        CanvasEventEmitter.subscribe(CanvasEvents.clickCanvasEvent, (event) => {
+            if(panelRefAPI.current){
+                panelRefAPI.current.displayDefault()
             }
         })
         if(canvasRef.current){

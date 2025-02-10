@@ -1,4 +1,5 @@
 import Drawable from "./drawable"
+import Node from "./node/node"
 import SvgDrawable from "./svg_drawable"
 
 /// 画布事件
@@ -7,7 +8,11 @@ export const CanvasEvents = {
     addSvgDrawableEvent: "addSvgDrawableEvent",
     removeDrawableEvent: "removeDrawableEvent",
     removeSvgDrawableEvent: "removeSvgDrawableEvent",
-    clickDrawableEvent: "clickDrawableEvent"
+    removeNodeEvent: "removeNodeEvent",
+    clickDrawableEvent: "clickDrawableEvent",
+    clickCanvasEvent: "clickCanvasEvent",
+    connectNode: "connectNode",
+    connectedNode: "connectedNode",
 }
 
 type EventCallBack<T extends CanvasEvent = CanvasEvent> = (context: T) => void
@@ -78,14 +83,34 @@ export interface ClickDrawableEvent extends CanvasEvent{
     context: Drawable
 }
 
+/// 点击画布空白处
+export interface ClickCanvasEvent extends CanvasEvent{
+    context: Coordinate
+}
+
+/// 开始选择另一结点
+export interface ConnectNodeEvent extends CanvasEvent{
+    context: Node
+}
+
+/// 选择完毕另一结点
+export interface ConnectedNodeEvent extends CanvasEvent{
+    context: {origin: Node, end: Node}
+}
+
 /// 添加可绘制Svg对象
 export interface AddSvgDrawableEvent{
     svgDrawable: SvgDrawable
 }
 
 /// 删除可绘制对象
-export interface RemoveDrawableEvent{
-    drawable: Drawable
+export interface RemoveDrawableEvent extends CanvasEvent{
+    context: Drawable
+}
+
+/// 删除顶点
+export interface RemoveNodeEvent extends CanvasEvent{
+    context: Node
 }
 
 /// 删除可绘制Svg对象

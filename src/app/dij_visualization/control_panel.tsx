@@ -5,29 +5,118 @@ import { InfiniteCanvasAPI } from "./infinite_canvas"
 import GraphUtils from "../_utils/graph_utils"
 import Node, { NodeBuilder } from "../_canvas/node/node"
 import style from './page.module.css'
+import nodeDetailStyle from './node_detail.module.css'
 import DarkButton from "../_widgets/dark_button/dark_button"
-import { PlusOutlined, RightOutlined } from "@ant-design/icons"
+import { ArrowLeftOutlined, PlusOutlined, RightOutlined } from "@ant-design/icons"
+import CanvasEventEmitter, { CanvasEvents, RemoveNodeEvent } from "../_canvas/events"
 
 export interface ControlPanelAPI{
     /// 展示指定的Node对象的信息
     displayNode: (node: Node) => void
+    displayDefault: () => void
+    /// 正在选择另一顶点
+    startSelectingNode: (node: Node) => void
+    /// 结束另一顶点的选择
+    endSelectNode: () => void
 }
 
-function NodeDetail({node}: {node: Node}){
-    const [data, setData] = useState({
-        position: {x: node.position.x, y: node.position.y}
-    })
+/// 展示结点详细信息的组件
+/// 还可以对结点进行一些特定的操作
+function NodeDetail(
+    {node, canvasRef, panelAPIRef , onClick}: 
+    {
+        node: Node,
+        canvasRef: RefObject<InfiniteCanvasAPI | null>, 
+        panelAPIRef: RefObject<ControlPanelAPI | null> ,
+        onClick?: () => void
+    }
+){
+    const [position, setPosition] = useState(node.position)
+    const [id, setId] = useState(node.id)
+    const [selectingNode, setSelectingNode] = useState(false)
 
     useEffect(()=>{
-        console.log("JHHHHH")
-        setData({
-            position: {x: node.position.x, y: node.position.y}
-        })
-    }, [node.position.x, node.position.y])
+        const onUpdateNode = ()=>{
+            setPosition({
+                x: node.position.x,
+                y: node.position.y
+            })
+            setId(node.id)
+        }
+        const onRemoveNode = (context: RemoveNodeEvent) => {
+            if(context.context.id === node.id){
+                if(panelAPIRef.current){
+                    panelAPIRef.current.displayDefault()
+                }
+            }
+        }
+
+        node.addListener(onUpdateNode)
+        CanvasEventEmitter.subscribe<RemoveNodeEvent>(CanvasEvents.removeNodeEvent, onRemoveNode)
+
+        return () => {
+            CanvasEventEmitter.unsubscribe<RemoveNodeEvent>(CanvasEvents.removeNodeEvent, onRemoveNode)
+            node.removeListener(onUpdateNode)
+        }
+    }, [node])
+    
+
+    function onConnectNode(e: any){
+        setSelectingNode(true)
+        if(!canvasRef.current || !panelAPIRef.current) return
+        panelAPIRef.current.startSelectingNode(node)
+        canvasRef.current.connectNode(node)
+    }
+
+    function onCancelSelect(e: any){
+        setSelectingNode(false)
+        if(!panelAPIRef.current || !canvasRef.current) return 
+        panelAPIRef.current.endSelectNode()
+        canvasRef.current.stopConnectNode()
+    }
+
+    function onDeleteNode(e: any){
+        if(!canvasRef.current || !panelAPIRef.current) return
+        canvasRef.current.deleteNode(node)
+    }
 
     return <div>
-        <p>坐标</p>
-        <p>[{data.position.x}, {data.position.y}]</p>
+        <ArrowLeftOutlined 
+        onClick={onClick}
+        className={nodeDetailStyle.backButton} />
+        {
+            createControlItem(`结点id`, <p style={{
+                fontWeight: "bold",
+                margin: "5px"
+            }}>
+                {id}
+            </p>)
+        }
+        {
+            createControlItem("坐标", <p style={{
+                fontWeight: "bold",
+                margin: "5px"
+            }}>
+                ({position.x}, {position.y})
+            </p>)
+        }
+        {
+            createControlItem("操作", <div>
+                {selectingNode ? <p>
+                    请点击另一顶点
+                    <DarkButton onClick={onCancelSelect}>
+                        取消
+                    </DarkButton>
+                </p> : <DarkButton onClick={onConnectNode}>
+                    连接另一顶点
+                </DarkButton>}
+                {
+                    selectingNode ? <div></div> :
+                    <DarkButton onClick={onDeleteNode}>删除该顶点</DarkButton>
+                }
+            </div>)
+        }
+        
     </div>
 }
 
@@ -37,7 +126,7 @@ export default function ControlPanel({
     panelAPIRef
 }: {
     canvasRef: RefObject<InfiniteCanvasAPI | null>,
-    panelAPIRef?: RefObject<ControlPanelAPI | null>
+    panelAPIRef: RefObject<ControlPanelAPI | null>
 }){
     // 控制面板尺寸
     const [width, setWidth] = useState(0)
@@ -48,6 +137,8 @@ export default function ControlPanel({
     const [position, setPosition] = useState({x: 30, y: 90})
     // 是否处于缩小状态
     const [minimize, setMinimize] = useState(false)
+    // 是否正在选择另一顶点
+    const [originNode, setOriginNode] = useState<Node | null>(null)
     // 鼠标位置和面板(left, top)的偏移
     const offset = useRef({x: 0, y: 0})
 
@@ -176,16 +267,32 @@ export default function ControlPanel({
 
     /// 控制面板API
     function displayNode(node: Node){
-        console.log(node)
         panelContents.current['node'] = ()=>{
-            return <NodeDetail node={node}></NodeDetail>
+            return <NodeDetail node={node} canvasRef={canvasRef} panelAPIRef={panelAPIRef} onClick={() => displayDefault()}></NodeDetail>
         }
         setCurrentContent('node')
     }
 
+    function displayDefault(){
+        // 正在选择另一顶点时不能恢复默认显示页面
+        if(originNode) return
+        setCurrentContent('default')
+    }
+
+    function startSelectingNode(node: Node){
+        setOriginNode(node)
+    }
+
+    function endSelectNode(){
+        setOriginNode(null)
+    }
+
     useImperativeHandle(panelAPIRef, ()=>{
         return {
-            displayNode
+            displayNode,
+            displayDefault,
+            startSelectingNode,
+            endSelectNode
         }
     })
     
