@@ -1,4 +1,4 @@
-export default class GraphUtils{
+export default class Utils{
     static getTitleBarHeight(){
         const rootStyle = getComputedStyle(document.documentElement)
         return parseInt(
@@ -10,5 +10,10 @@ export default class GraphUtils{
             rootStyle.getPropertyValue('--titleBarPadding')
             .slice(0, rootStyle.getPropertyValue('--titleBarPadding').indexOf('px'))
         ) 
+    }
+
+    /// 生成[min, max]的随机数
+    static random(min: number, max: number){
+        return Math.floor(Math.random() * (max - min + 1)) + min
     }
 }

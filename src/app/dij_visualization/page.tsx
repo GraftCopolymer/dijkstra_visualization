@@ -2,13 +2,13 @@
 
 import { useEffect, useRef } from 'react'
 import style from './page.module.css'
-import InfiniteCanvas, { InfiniteCanvasAPI } from './infinite_canvas'
+import DijCanvas, { DijCanvasAPI } from './infinite_canvas'
 import CanvasEventEmitter, { AddDrawableEvent, CanvasEvents, ClickDrawableEvent } from '../_canvas/events'
 import ControlPanel, { ControlPanelAPI } from './control_panel'
 import Node from '../_canvas/node/node'
 
 export default function DijPlayground(){
-    const canvasRef = useRef<InfiniteCanvasAPI>(null)
+    const canvasRef = useRef<DijCanvasAPI>(null)
     const panelRefAPI = useRef<ControlPanelAPI>(null)
 
     useEffect(()=>{
@@ -32,6 +32,6 @@ export default function DijPlayground(){
 
     return <div className={style.playground}>
         <ControlPanel canvasRef={canvasRef} panelAPIRef={panelRefAPI}/>
-        <InfiniteCanvas ref={canvasRef} />
+        <DijCanvas ref={canvasRef} />
     </div>
 }

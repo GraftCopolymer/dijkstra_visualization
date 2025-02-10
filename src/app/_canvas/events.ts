@@ -11,8 +11,10 @@ export const CanvasEvents = {
     removeNodeEvent: "removeNodeEvent",
     clickDrawableEvent: "clickDrawableEvent",
     clickCanvasEvent: "clickCanvasEvent",
-    connectNode: "connectNode",
-    connectedNode: "connectedNode",
+    connectNodeEvent: "connectNode",
+    connectedNodeEvent: "connectedNode",
+    startDijEvent: "startDijEvent",
+    endDijEvent: "endDijEvent"
 }
 
 type EventCallBack<T extends CanvasEvent = CanvasEvent> = (context: T) => void
@@ -96,6 +98,16 @@ export interface ConnectNodeEvent extends CanvasEvent{
 /// 选择完毕另一结点
 export interface ConnectedNodeEvent extends CanvasEvent{
     context: {origin: Node, end: Node}
+}
+
+/// 开始迪杰斯特拉算法模拟
+export interface StartDijEvent extends CanvasEvent{
+    context: {startNode: Node}
+}
+
+/// 结束迪杰斯特拉算法模拟
+export interface EndDijEvent extends CanvasEvent{
+    context: {startNode: Node}
 }
 
 /// 添加可绘制Svg对象

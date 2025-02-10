@@ -1,14 +1,16 @@
 'use client'
 
 import { JSX, RefObject, useEffect, useImperativeHandle, useRef, useState } from "react"
-import { InfiniteCanvasAPI } from "./infinite_canvas"
-import GraphUtils from "../_utils/graph_utils"
+import { DijCanvasAPI } from "./infinite_canvas"
+import Utils from "../_utils/graph_utils"
 import Node, { NodeBuilder } from "../_canvas/node/node"
 import style from './page.module.css'
 import nodeDetailStyle from './node_detail.module.css'
 import DarkButton from "../_widgets/dark_button/dark_button"
 import { ArrowLeftOutlined, PlusOutlined, RightOutlined } from "@ant-design/icons"
-import CanvasEventEmitter, { CanvasEvents, RemoveNodeEvent } from "../_canvas/events"
+import CanvasEventEmitter, { CanvasEvents, EndDijEvent, RemoveNodeEvent, StartDijEvent } from "../_canvas/events"
+import IdGenerator from "../_canvas/id_generator"
+import Line, { LineBuilder } from "../_canvas/line/line"
 
 export interface ControlPanelAPI{
     /// 展示指定的Node对象的信息
@@ -19,23 +21,26 @@ export interface ControlPanelAPI{
     /// 结束另一顶点的选择
     endSelectNode: () => void
     /// 根据传入的二维数组生成有向图
-    genDirectedMap: (matrix: [][]) => void
+    genRandomDirectedMap: (minNodes: number, maxNodes: number, minWeight: number, maxWeight: number) => void
 }
 
 /// 展示结点详细信息的组件
 /// 还可以对结点进行一些特定的操作
 function NodeDetail(
-    {node, canvasRef, panelAPIRef , onClick}: 
+    {node, canvasRef, panelAPIRef , onBack, onStartDij, onEndDij}: 
     {
         node: Node,
-        canvasRef: RefObject<InfiniteCanvasAPI | null>, 
+        canvasRef: RefObject<DijCanvasAPI | null>, 
         panelAPIRef: RefObject<ControlPanelAPI | null> ,
-        onClick?: () => void
+        onBack?: () => void
+        onStartDij?: (start: Node) => void
+        onEndDij: () => void
     }
 ){
     const [position, setPosition] = useState(node.position)
     const [id, setId] = useState(node.id)
     const [selectingNode, setSelectingNode] = useState(false)
+    const [dijing, setDijing] = useState(false)
 
     useEffect(()=>{
         const onUpdateNode = ()=>{
@@ -52,12 +57,21 @@ function NodeDetail(
                 }
             }
         }
+        const onStartDij = (context: StartDijEvent) => {
+            setDijing(true)
+        }
+        const onEndDij = (context: EndDijEvent) => {
+            setDijing(false)
+        }
 
         node.addListener(onUpdateNode)
         CanvasEventEmitter.subscribe<RemoveNodeEvent>(CanvasEvents.removeNodeEvent, onRemoveNode)
-
+        CanvasEventEmitter.subscribe<StartDijEvent>(CanvasEvents.startDijEvent, onStartDij)
+        CanvasEventEmitter.subscribe<EndDijEvent>(CanvasEvents.endDijEvent, onEndDij)
         return () => {
             CanvasEventEmitter.unsubscribe<RemoveNodeEvent>(CanvasEvents.removeNodeEvent, onRemoveNode)
+            CanvasEventEmitter.unsubscribe<StartDijEvent>(CanvasEvents.startDijEvent, onStartDij)
+            CanvasEventEmitter.unsubscribe<EndDijEvent>(CanvasEvents.endDijEvent, onEndDij)
             node.removeListener(onUpdateNode)
         }
     }, [node])
@@ -82,44 +96,51 @@ function NodeDetail(
         canvasRef.current.deleteNode(node)
     }
 
-    return <div>
-        <ArrowLeftOutlined 
-        onClick={onClick}
-        className={nodeDetailStyle.backButton} />
-        {
-            createControlItem(`结点id`, <p style={{
-                fontWeight: "bold",
-                margin: "5px"
-            }}>
-                {id}
-            </p>)
-        }
-        {
-            createControlItem("坐标", <p style={{
-                fontWeight: "bold",
-                margin: "5px"
-            }}>
-                ({position.x}, {position.y})
-            </p>)
-        }
-        {
-            createControlItem("操作", <div>
-                {selectingNode ? <p>
-                    请点击另一顶点
-                    <DarkButton onClick={onCancelSelect}>
-                        结束连接
-                    </DarkButton>
-                </p> : <DarkButton onClick={onConnectNode}>
-                    连接另一顶点
-                </DarkButton>}
-                {
-                    selectingNode ? <div></div> :
-                    <DarkButton onClick={onDeleteNode}>删除该顶点</DarkButton>
-                }
-            </div>)
-        }
-        
-    </div>
+    return dijing ? <DarkButton onClick={() => {if(onEndDij) onEndDij()}}>
+            停止可视化
+        </DarkButton> : <div>
+            <ArrowLeftOutlined 
+            onClick={onBack}
+            className={nodeDetailStyle.backButton} />
+            {
+                createControlItem(`结点id`, <p style={{
+                    fontWeight: "bold",
+                    margin: "5px"
+                }}>
+                    {id}
+                </p>)
+            }
+            {
+                createControlItem("坐标", <p style={{
+                    fontWeight: "bold",
+                    margin: "5px"
+                }}>
+                    ({position.x}, {position.y})
+                </p>)
+            }
+            {
+                createControlItem("操作", <div>
+                    {selectingNode ? <p>
+                        请点击另一顶点
+                        <DarkButton onClick={onCancelSelect}>
+                            结束连接
+                        </DarkButton>
+                    </p> : <DarkButton onClick={onConnectNode}>
+                        连接另一顶点
+                    </DarkButton>}
+                    {
+                        selectingNode ? <div></div> :
+                        <DarkButton onClick={onDeleteNode}>删除该顶点</DarkButton>
+                    }
+                </div>)
+            }
+            {
+                createControlItem("模拟", <div>
+                    <DarkButton onClick={() => {if(onStartDij) onStartDij(node)}}>从该点开始迪杰斯特拉算法</DarkButton>
+                </div>)
+            }
+        </div>
+            
 }
 
 /// 悬浮式控制面板
@@ -127,7 +148,7 @@ export default function ControlPanel({
     canvasRef,
     panelAPIRef
 }: {
-    canvasRef: RefObject<InfiniteCanvasAPI | null>,
+    canvasRef: RefObject<DijCanvasAPI | null>,
     panelAPIRef: RefObject<ControlPanelAPI | null>
 }){
     // 控制面板尺寸
@@ -139,8 +160,10 @@ export default function ControlPanel({
     const [position, setPosition] = useState({x: 30, y: 90})
     // 是否处于缩小状态
     const [minimize, setMinimize] = useState(false)
+    // 是否正在进行算法可视化
+    const [dijing, setDijing] = useState(false)
     // 是否正在选择另一顶点
-    const [originNode, setOriginNode] = useState<Node | null>(null)
+    const originNode = useRef<Node | null>(null)
     // 鼠标位置和面板(left, top)的偏移
     const offset = useRef({x: 0, y: 0})
 
@@ -152,16 +175,23 @@ export default function ControlPanel({
         'default': () => {
             return <div>
                 {createControlItem(
-                    "创建结点",
+                    "创建图",
                     <>
                         <DarkButton onClick={createNode}>
                             快速创建 <PlusOutlined />
                         </DarkButton>
-                        <DarkButton onClick={createNode}>
+                        <DarkButton onClick={() => genRandomDirectedMap()}>
                             生成随机有向图 
                         </DarkButton>
                     </>
                 )}
+                {
+                    createControlItem("画布操作", <>
+                        <DarkButton onClick={() => canvasRef.current?.clearCanvas()}>
+                            清空画布
+                        </DarkButton>
+                    </>)
+                }
             </div>
         },
         'node': () => {
@@ -178,7 +208,7 @@ export default function ControlPanel({
             setWidth(parseInt(style.width.slice(0,style.width.indexOf('px'))))
             setHeight(parseInt(style.height.slice(0,style.height.indexOf('px'))))
             setTitleHeight(
-                GraphUtils.getTitleBarHeight()
+                Utils.getTitleBarHeight()
             )
         }
     }, [])
@@ -266,39 +296,123 @@ export default function ControlPanel({
     function createNode(){
         const node = new NodeBuilder()
             .position({x: 0, y: 0})
-            .radius(50)
+            .radius(25)
             .color("red")
             .build()
         canvasRef.current!.drawNode(node)
     }
 
+    function onStartDij(startNode: Node){
+        if(!canvasRef.current) return 
+        canvasRef.current.startDij()
+        setDijing(true)
+    }
+
+    function onEndDij(){
+        if(!canvasRef.current) return 
+        canvasRef.current.endDij()
+        setDijing(false)
+    }
+
     /// 控制面板API
     function displayNode(node: Node){
         panelContents.current['node'] = ()=>{
-            return <NodeDetail node={node} canvasRef={canvasRef} panelAPIRef={panelAPIRef} onClick={() => displayDefault()}></NodeDetail>
+            return <NodeDetail 
+            node={node} 
+            canvasRef={canvasRef} 
+            panelAPIRef={panelAPIRef} 
+            onBack={() => displayDefault()}
+            onStartDij={onStartDij}
+            onEndDij={onEndDij}></NodeDetail>
         }
         setCurrentContent('node')
     }
 
     function displayDefault(){
         // 正在选择另一顶点时不能恢复默认显示页面
-        if(originNode) return
+        if(originNode.current || dijing) return
         setCurrentContent('default')
     }
 
     function startSelectingNode(node: Node){
-        setOriginNode(node)
+        originNode.current = node
     }
 
     function endSelectNode(){
-        setOriginNode(null)
+        originNode.current = null
     }
 
-    function genDirectedMap(matrix: [][]){
-        if(matrix[0].length != matrix.length){
-            throw "Invalid adjacency matrix"
+    // 生成随机邻接矩阵
+    function generateRandomAdjMatrix(size: number, density = 0.5, minWeight: number, maxWeight: number) {
+        let adMatrix = Array.from({ length: size }, () => Array(size).fill(-1));
+        let edgeCount = Math.floor(density * size * (size - 1));
+        let edges = new Set();
+        
+        while (edges.size < edgeCount) {
+            let i = Math.floor(Math.random() * size);
+            let j = Math.floor(Math.random() * size);
+            
+            if (i !== j && !edges.has(`${i},${j}`) && !edges.has(`${j},${i}`)) {
+                adMatrix[i][j] = Utils.random(minWeight, maxWeight);
+                edges.add(`${i},${j}`);
+            }
         }
         
+        // 确保没有孤立点
+        for (let i = 0; i < size; i++) {
+            // 如果该节点没有任何边
+            if (!adMatrix[i].some(val => val !== -1)) {
+                // 随机选择一个未连接的节点，避免平行边
+                let possibleConnections = [];
+                for (let j = 0; j < size; j++) {
+                    if (i !== j && !edges.has(`${i},${j}`) && !edges.has(`${j},${i}`)) {
+                        possibleConnections.push(j);
+                    }
+                }
+                if (possibleConnections.length > 0) {
+                    // 随机选择一个节点进行连接
+                    let randIndex = possibleConnections[Math.floor(Math.random() * possibleConnections.length)];
+                    let weight = Utils.random(minWeight, maxWeight);
+                    adMatrix[i][randIndex] = weight;
+                    edges.add(`${i},${randIndex}`);
+                }
+            }
+        }
+        return adMatrix;
+    }
+
+    function genRandomDirectedMap(minNodes: number = 4, maxNodes: number = 8, minWeight: number = 20, maxWeight: number = 100){
+        if(!canvasRef.current) return 
+        // 清空画布
+        canvasRef.current.clearCanvas()
+        IdGenerator.reset()
+        const nodeNumber = Utils.random(minNodes, maxNodes)
+        
+        const adMatrix = generateRandomAdjMatrix(nodeNumber, 0.1, minWeight, maxWeight)
+
+        // 根据邻接矩阵生成图
+        // 生成所有的结点
+        const radius = 50
+        const canvasSize = canvasRef.current.getStates().canvasSize
+        const nodes: Node[] = []
+        const lines: Line[] = []
+        for(let i = 0; i < nodeNumber; i++){
+            nodes.push(
+                new NodeBuilder()
+                .position({x: Utils.random( -canvasSize.width / 2 + radius * 2, canvasSize.width / 2 - radius * 2), y: Utils.random(-canvasSize.height / 2 + radius * 2, canvasSize.height / 2 - radius * 2)})
+                .radius(25)
+                .build()
+            )
+        }
+        for(let row = 0; row < nodeNumber; row++){
+            for(let column = 0; column < nodeNumber; column++){
+                if(adMatrix[row][column] !== -1){
+                    lines.push(new LineBuilder(nodes[column], nodes[row]).weight(adMatrix[row][column]).build())
+                }
+            }
+        }
+        canvasRef.current.drawNodes(nodes)
+        canvasRef.current.drawLines(lines)
     }
 
     useImperativeHandle(panelAPIRef, ()=>{
@@ -307,7 +421,7 @@ export default function ControlPanel({
             displayDefault,
             startSelectingNode,
             endSelectNode,
-            genDirectedMap
+            genRandomDirectedMap
         }
     })
     

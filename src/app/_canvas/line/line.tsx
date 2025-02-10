@@ -1,5 +1,3 @@
-import { ConsoleSqlOutlined } from "@ant-design/icons";
-import Drawable from "../drawable";
 import IdGenerator from "../id_generator";
 import Node from "../node/node";
 import SvgDrawable from "../svg_drawable";
@@ -11,12 +9,12 @@ export default class Line implements SvgDrawable{
     private _end: Node
     private _strokeWidth: number
     private _color: string
-    private _id: number
+    private _id: string
     private _arrowSize: number
     // 权重
     private _weight: number
 
-    constructor(start: Node, end: Node, id: number){
+    constructor(start: Node, end: Node, id: string){
         this._start = start
         this._end = end
         this._strokeWidth = 2
@@ -38,8 +36,8 @@ export default class Line implements SvgDrawable{
         const uy = dy / length;
 
         // 计算箭头尖端紧贴 Node 外圆
-        const arrowTipX = x2 - ux * radius / 2;
-        const arrowTipY = y2 - uy * radius / 2;
+        const arrowTipX = x2 - ux * radius;
+        const arrowTipY = y2 - uy * radius;
 
         // 计算箭头基部
         const arrowBaseX = arrowTipX - ux * this._arrowSize;
@@ -132,7 +130,7 @@ export default class Line implements SvgDrawable{
     get id(){
         return this._id
     }
-    set id(id: number){
+    set id(id: string){
         this._id = id
     }
 
@@ -155,7 +153,7 @@ export class LineBuilder{
     private _line: Line
 
     constructor(start: Node, end: Node){
-        this._line = new Line(start, end, IdGenerator.next())
+        this._line = new Line(start, end, IdGenerator.nextSvgId())
     }
 
     start(start: Node){

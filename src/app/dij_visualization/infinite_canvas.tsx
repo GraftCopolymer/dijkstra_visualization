@@ -6,7 +6,8 @@ import style from './page.module.css'
 import Node from '../_canvas/node/node'
 import SvgDrawable from '../_canvas/svg_drawable'
 import Line, { LineBuilder } from '../_canvas/line/line'
-import CanvasEventEmitter, { CanvasEvents, ClickCanvasEvent, ClickDrawableEvent } from '../_canvas/events'
+import CanvasEventEmitter, { CanvasEvents, ClickCanvasEvent, ClickDrawableEvent, EndDijEvent, StartDijEvent } from '../_canvas/events'
+import IdGenerator from '../_canvas/id_generator'
 
 export interface CanvasStates{
     drawableList: Drawable[]
@@ -16,9 +17,13 @@ export interface CanvasStates{
     originNode: Node | null
 }
 
-export interface InfiniteCanvasAPI{
+export interface DijCanvasAPI{
     draw: (drawable: Drawable) => void
     drawNode: (node: Node) => void
+    /// 清除画布并绘制列表中的顶点
+    drawNodes: (nodeList: Node[]) => void
+    /// 清除画布并绘制列表中的直线
+    drawLines: (lineList: Line[]) => void
     /// 将鼠标坐标变换为以屏幕中心点为原点的坐标
     translateMousePosition: (pos: Coordinate) => Coordinate
     /// 绘制直线
@@ -31,9 +36,16 @@ export interface InfiniteCanvasAPI{
     getStates: () => CanvasStates
     // 删除顶点
     deleteNode: (node: Node) => void
+    // 删除所有可绘制对象以及svg对象
+    clearCanvas: () => void
+    // 开始迪杰斯特拉算法模拟
+    startDij: () => void
+    // 结束迪杰斯特拉撒算法模拟
+    endDij: () => void
+    
 }
 
-export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
+export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
     const [drawableList, setDrawableList] = useState([] as Drawable[])
     const [svgDrawableList, setSvgDrawableList] = useState([] as SvgDrawable[])
     /// 将可绘制对象转化为JSX元素
@@ -68,25 +80,30 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
     // 当前画布状态
     // 存放选择状态时的起始Drawable，为null则表示不处于选择状态
     const originNode = useRef<Node | null>(null)
+    // 是否处于算法模拟状态
+    const [dij, setDij] = useState(false)
 
     /// Drawable对象被点击
     function onClickDrawable(e: MouseEvent, drawable: Drawable){
         console.log(drawable)
+        if(dij) return
         // 派发可绘制对象被点击的事件
         CanvasEventEmitter.publish<ClickDrawableEvent>(CanvasEvents.clickDrawableEvent, {context: drawable})
         if(!originNode.current) return
         /// 不能连接到自己
         if(drawable === originNode.current || !(drawable instanceof Node)) return 
-        /// 绘制直线
-        console.log("绘制直线")
+        // 不能重复绘制
+        if(originNode.current.lines.start.some((line) => line.end.id === drawable.id)) return 
+        const line = new LineBuilder(originNode.current!, drawable).build()
+        console.log(`绘制直线: ${line}`)
         drawLine(
-            new LineBuilder(originNode.current!, drawable).build()
+            line
         )
     }
 
     /// 开始拖动Drawable对象
     function onDragDrawable(e: any, drawable: Drawable){
-        if(originNode.current) return
+        if(originNode.current || dij) return
         e.stopPropagation()
         setDraggingDrawable(drawable)
         // 将鼠标坐标变换到以屏幕中心点为原点的坐标系
@@ -105,7 +122,7 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
 
     // 正在拖动Drawable对象
     function onDraggingDrawable(e: any){
-        if(!draggingDrawable || originNode.current) return
+        if(!draggingDrawable || originNode.current || dij) return
         // 计算被拖动对象的新位置
         const translated = translateMousePosition({
             x: e.clientX,
@@ -140,7 +157,7 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
 
     /// 停止拖动Drawable对象
     function onStopDragging(e: any){
-        if(originNode.current) return 
+        if(originNode.current || dij) return 
         e.stopPropagation()
         setDraggingDrawable(null)
         document.body.style.userSelect = ''
@@ -188,6 +205,12 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         CanvasEventEmitter.publish(CanvasEvents.addDrawableEvent, {context: node})
     }
 
+    function drawNodes(nodeList: Node[]){
+        setDrawableList([
+            ...nodeList
+        ])
+    }
+
     function drawLine(line: Line){
         // 将线添加到顶点的边集中
         line.start.addAsStart(line)
@@ -195,6 +218,17 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         setSvgDrawableList([
             ...svgDrawableList,
             line
+        ])
+    }
+
+    function drawLines(lineList: Line[]){
+        // 为结点同步直线
+        lineList.forEach((line) => {
+            line.start.addAsStart(line)
+            line.end.addAsEnd(line)
+        })
+        setSvgDrawableList([
+            ...lineList
         ])
     }
 
@@ -217,7 +251,7 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
 
     function connectNode(origin: Node){
         originNode.current = origin
-        CanvasEventEmitter.publish(CanvasEvents.connectNode, {context: origin})
+        CanvasEventEmitter.publish(CanvasEvents.connectNodeEvent, {context: origin})
     }
 
     function stopConnectNode(){
@@ -244,17 +278,41 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
         CanvasEventEmitter.publish(CanvasEvents.removeNodeEvent, {context: node})
     }
 
+    function clearCanvas(){
+        setDrawableList([])
+        setSvgDrawableList([])
+        setDraggingDrawable(null)
+        // 重置id迭代器
+        IdGenerator.reset()
+        originNode.current = null
+    }
+
+    function startDij(){
+        CanvasEventEmitter.publish<StartDijEvent>(CanvasEvents.startDijEvent)
+        setDij(true)
+    }
+
+    function endDij(){
+        CanvasEventEmitter.publish<EndDijEvent>(CanvasEvents.endDijEvent)
+        setDij(false)
+    }
+
     /// 向外界暴露绘图API
     useImperativeHandle(ref, ()=>{
         return {
             draw,
             drawNode,
+            drawNodes,
             translateMousePosition,
             drawLine,
+            drawLines,
             connectNode,
             getStates,
             stopConnectNode,
-            deleteNode
+            deleteNode,
+            clearCanvas,
+            startDij,
+            endDij
         }
     })
 

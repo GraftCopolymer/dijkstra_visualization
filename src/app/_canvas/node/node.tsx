@@ -14,18 +14,18 @@ export default class Node extends Listenable implements Drawable{
     private _color: string
     private _zIndex: number
     private _opacity: number
-    private _id: number
+    private _id: string
     private _name: string
     // 连接到该点的线段集合
     // start表示以该点作为起点的线段，end表示以该点作为终点的线段
     private _lines: {"start": Line[], "end": Line[]}
 
-    constructor(id: number, name?: string){
+    constructor(id: string, name?: string){
         super()
         this._position = {x: 0, y: 0}
-        this._radius = 5
-        this._width = this._radius
-        this._height = this._radius
+        this._radius = 50
+        this._width = this._radius * 2
+        this._height = this._radius * 2
         this._color = "blue"
         this._zIndex = 101
         this._opacity = 1
@@ -54,20 +54,20 @@ export default class Node extends Listenable implements Drawable{
     }
 
     get width(): number {
-        return this._radius
+        return this._radius * 2
     }
     set width(width: number) {
-        this._radius = width
+        this._radius = width / 2
         this._height = width
         this._width = width
         this.notifyListeners()
     }
 
     get height(): number {
-        return this._radius
+        return this._radius * 2
     }
     set height(height: number) {
-        this._radius = height
+        this._radius = height / 2
         this._height = height
         this._width = height
         this.notifyListeners()
@@ -77,16 +77,16 @@ export default class Node extends Listenable implements Drawable{
         return this._radius
     }
     set radius(radius: number){
-        this._width = radius
-        this._height = radius
+        this._width = radius * 2
+        this._height = radius * 2
         this._radius = radius
         this.notifyListeners()
     }
 
-    get id(): number {
+    get id(): string {
         return this._id
     }
-    set id(id: number) {
+    set id(id: string) {
         this._id = id
         this.notifyListeners()
     }
@@ -172,8 +172,8 @@ export default class Node extends Listenable implements Drawable{
         const css: CSSProperties = {
             backgroundColor: this.color,
             zIndex: this.zIndex,
-            width: this._radius,
-            height: this._radius,
+            width: this._radius * 2,
+            height: this._radius * 2,
             left: `${this.position.x}px`,
             top: `${this.position.y}px`,
         }
@@ -204,7 +204,7 @@ export class NodeBuilder{
     public node: Node
 
     constructor(){
-        this.node = new Node(IdGenerator.next())
+        this.node = new Node(IdGenerator.nextDrawableId())
     }
 
     static copy(node: Node): Node{
@@ -222,8 +222,6 @@ export class NodeBuilder{
 
     radius(radius: number){
         this.node.radius = radius
-        this.node.width = radius
-        this.node.height = radius
         return this
     }
 
