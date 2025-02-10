@@ -281,9 +281,6 @@ export default function InfiniteCanvas({ref}: {ref?: Ref<InfiniteCanvasAPI>}){
             {drawableElementList}
             <svg className={style.svgCanvas}>
                 <g className={style.svgOriginPoint}>
-                    <path d="M 30 100 L 170 100" strokeWidth="40px" stroke="#948134" strokeLinecap="round"/>
-                    <circle cx="100" cy="100" r="50" fill="blue" stroke="black" strokeWidth="2" />
-                    <circle cx="0px" cy="0px" r="50" fill="blue" stroke="black" strokeWidth="2" />
                     {svgDrawableElementList}
                 </g>
             </svg>

@@ -18,6 +18,8 @@ export interface ControlPanelAPI{
     startSelectingNode: (node: Node) => void
     /// 结束另一顶点的选择
     endSelectNode: () => void
+    /// 根据传入的二维数组生成有向图
+    genDirectedMap: (matrix: [][]) => void
 }
 
 /// 展示结点详细信息的组件
@@ -105,7 +107,7 @@ function NodeDetail(
                 {selectingNode ? <p>
                     请点击另一顶点
                     <DarkButton onClick={onCancelSelect}>
-                        取消
+                        结束连接
                     </DarkButton>
                 </p> : <DarkButton onClick={onConnectNode}>
                     连接另一顶点
@@ -148,14 +150,19 @@ export default function ControlPanel({
     /// 控制面板显示的内容
     const panelContents = useRef<{ [key: string]: (() => JSX.Element) | JSX.Element}>({
         'default': () => {
-            return createControlItem(
-                "创建结点",
-                <>
-                    <DarkButton onClick={createNode}>
-                        快速创建 <PlusOutlined />
-                    </DarkButton>
-                </>
-            )
+            return <div>
+                {createControlItem(
+                    "创建结点",
+                    <>
+                        <DarkButton onClick={createNode}>
+                            快速创建 <PlusOutlined />
+                        </DarkButton>
+                        <DarkButton onClick={createNode}>
+                            生成随机有向图 
+                        </DarkButton>
+                    </>
+                )}
+            </div>
         },
         'node': () => {
             return <div></div>
@@ -259,7 +266,7 @@ export default function ControlPanel({
     function createNode(){
         const node = new NodeBuilder()
             .position({x: 0, y: 0})
-            .radius(90)
+            .radius(50)
             .color("red")
             .build()
         canvasRef.current!.drawNode(node)
@@ -287,12 +294,20 @@ export default function ControlPanel({
         setOriginNode(null)
     }
 
+    function genDirectedMap(matrix: [][]){
+        if(matrix[0].length != matrix.length){
+            throw "Invalid adjacency matrix"
+        }
+        
+    }
+
     useImperativeHandle(panelAPIRef, ()=>{
         return {
             displayNode,
             displayDefault,
             startSelectingNode,
-            endSelectNode
+            endSelectNode,
+            genDirectedMap
         }
     })
     
