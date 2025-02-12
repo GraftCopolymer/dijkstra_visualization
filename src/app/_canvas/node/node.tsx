@@ -14,13 +14,17 @@ export default class Node extends Listenable implements Drawable{
     private _color: string
     private _zIndex: number
     private _opacity: number
-    private _id: string
+    private _id: number
     private _name: string
     // 连接到该点的线段集合
     // start表示以该点作为起点的线段，end表示以该点作为终点的线段
     private _lines: {"start": Line[], "end": Line[]}
+    // 外部样式
+    private _outerStyle: CSSProperties
+    // 悬浮文本
+    private _floatingText: string
 
-    constructor(id: string, name?: string){
+    constructor(id: number, name?: string){
         super()
         this._position = {x: 0, y: 0}
         this._radius = 50
@@ -35,6 +39,8 @@ export default class Node extends Listenable implements Drawable{
             "start": [],
             "end": []
         }
+        this._outerStyle = {}
+        this._floatingText = ""
     }
 
     get opacity(): number {
@@ -83,10 +89,10 @@ export default class Node extends Listenable implements Drawable{
         this.notifyListeners()
     }
 
-    get id(): string {
+    get id(): number {
         return this._id
     }
-    set id(id: string) {
+    set id(id: number) {
         this._id = id
         this.notifyListeners()
     }
@@ -122,6 +128,23 @@ export default class Node extends Listenable implements Drawable{
         this._lines = lines
         this.notifyListeners()
     }
+
+    get outerStyle(){
+        return this._outerStyle
+    }
+    set outerStyle(s: CSSProperties){
+        this._outerStyle = s
+        this.notifyListeners()
+    }
+
+    get floatingText(){
+        return this._floatingText
+    }
+    set floatingText(text: string){
+        this._floatingText = text
+        this.notifyListeners()
+    }
+
     // 将线段作为起点添加
     addAsStart(line: Line){
         // 检查该直线是否已经存在
@@ -176,6 +199,7 @@ export default class Node extends Listenable implements Drawable{
             height: this._radius * 2,
             left: `${this.position.x}px`,
             top: `${this.position.y}px`,
+            ...this._outerStyle
         }
         return css
     }
@@ -188,6 +212,11 @@ export default class Node extends Listenable implements Drawable{
             {
                 this.getChild()
             }
+            <div style={{
+                position: "absolute",
+                top: `-${this.radius}px`,
+                fontWeight: "bold"
+            }}>{this._floatingText}</div>
         </div>
     }
 

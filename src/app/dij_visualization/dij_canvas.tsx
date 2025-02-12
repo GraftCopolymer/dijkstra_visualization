@@ -8,6 +8,8 @@ import SvgDrawable from '../_canvas/svg_drawable'
 import Line, { LineBuilder } from '../_canvas/line/line'
 import CanvasEventEmitter, { CanvasEvents, ClickCanvasEvent, ClickDrawableEvent, EndDijEvent, StartDijEvent } from '../_canvas/events'
 import IdGenerator from '../_canvas/id_generator'
+import { DijController } from '../_canvas/dij_controller'
+import Utils from '../_utils/utils'
 
 export interface CanvasStates{
     drawableList: Drawable[]
@@ -38,14 +40,21 @@ export interface DijCanvasAPI{
     deleteNode: (node: Node) => void
     // 删除所有可绘制对象以及svg对象
     clearCanvas: () => void
-    // 开始迪杰斯特拉算法模拟
-    startDij: () => void
-    // 结束迪杰斯特拉撒算法模拟
-    endDij: () => void
-    
+    // // 开始迪杰斯特拉算法模拟
+    // startDij: () => void
+    // // 结束迪杰斯特拉撒算法模拟
+    // endDij: () => void
+    // 修改结点外部样式
+    updateNodeOuterStyle: (id: number, data: any) => void
+    // 修改直线外部样式
+    updateLineOuterStyle: (id: string, data: any) => void
+    // 修改结点悬浮文本
+    updateNodeFloatingText: (id: number, text: string) => void
 }
 
 export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
+    // 是否处于算法模拟状态
+    const [dij, setDij] = useState(false)
     const [drawableList, setDrawableList] = useState([] as Drawable[])
     const [svgDrawableList, setSvgDrawableList] = useState([] as SvgDrawable[])
     /// 将可绘制对象转化为JSX元素
@@ -80,8 +89,6 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
     // 当前画布状态
     // 存放选择状态时的起始Drawable，为null则表示不处于选择状态
     const originNode = useRef<Node | null>(null)
-    // 是否处于算法模拟状态
-    const [dij, setDij] = useState(false)
 
     /// Drawable对象被点击
     function onClickDrawable(e: MouseEvent, drawable: Drawable){
@@ -94,7 +101,7 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
         if(drawable === originNode.current || !(drawable instanceof Node)) return 
         // 不能重复绘制
         if(originNode.current.lines.start.some((line) => line.end.id === drawable.id)) return 
-        const line = new LineBuilder(originNode.current!, drawable).build()
+        const line = new LineBuilder(originNode.current!, drawable).weight(Utils.random(20, 100)).build()
         console.log(`绘制直线: ${line}`)
         drawLine(
             line
@@ -287,14 +294,42 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
         originNode.current = null
     }
 
-    function startDij(){
-        CanvasEventEmitter.publish<StartDijEvent>(CanvasEvents.startDijEvent)
-        setDij(true)
+    // function startDij(){
+    //     CanvasEventEmitter.publish<StartDijEvent>(CanvasEvents.startDijEvent)
+    //     setDij(true)
+    // }
+
+    // function endDij(){
+    //     CanvasEventEmitter.publish<EndDijEvent>(CanvasEvents.endDijEvent)
+    //     setDij(false)
+    // }
+
+    function updateNodeOuterStyle(id: number, data: any){
+        console.log("更新")
+        setDrawableList(drawableList.map(d => {
+            if(d.id == id){
+                d.outerStyle = data
+            }
+            return d
+        }))
     }
 
-    function endDij(){
-        CanvasEventEmitter.publish<EndDijEvent>(CanvasEvents.endDijEvent)
-        setDij(false)
+    function updateLineOuterStyle(id: string, data: any){
+        setSvgDrawableList(svgDrawableList.map(l => {
+            if(l.id == id && l instanceof Line){
+                l.outerStyle = data
+            }
+            return l
+        }))
+    }
+
+    function updateNodeFloatingText(id: number, text: string) {
+        setDrawableList(drawableList.map(d => {
+            if(d.id == id && d instanceof Node){
+                d.floatingText = text
+            }
+            return d
+        }))
     }
 
     /// 向外界暴露绘图API
@@ -311,8 +346,11 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
             stopConnectNode,
             deleteNode,
             clearCanvas,
-            startDij,
-            endDij
+            // startDij,
+            // endDij
+            updateNodeOuterStyle,
+            updateLineOuterStyle,
+            updateNodeFloatingText
         }
     })
 
@@ -322,13 +360,25 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
             width: window.innerWidth,
             height: window.innerHeight
         }) 
-        // 更新窗口尺寸
-        window.addEventListener("resize", ()=>{
+        const onUpdateWindowSize = ()=>{
             setCanvasSize({
                 width: window.innerWidth,
                 height: window.innerHeight
             })
-        })
+        }
+        const onDijChange = () => {
+            setDij(DijController.dij)
+        }
+        
+        // 更新窗口尺寸
+        window.addEventListener("resize", onUpdateWindowSize)
+        // 监听算法模拟控制器
+        DijController.addListener(onDijChange)
+        
+        return () => {
+            window.removeEventListener("resize", onUpdateWindowSize)
+            DijController.removeListener(onDijChange)
+        }
     }, [])
 
     return <div className={style.infiniteBackground} onClickCapture={onClickCanvas} ref={canvasRef}>

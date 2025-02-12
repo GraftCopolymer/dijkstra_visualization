@@ -8,7 +8,7 @@ class IdGeneratorClass{
     }
 
     nextDrawableId(){
-        return `${this.current++}`
+        return this.current++
     }
     nextSvgId(){
         return `svg-${this.current++}`

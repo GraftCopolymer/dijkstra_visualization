@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import IdGenerator from "../id_generator";
 import Node from "../node/node";
 import SvgDrawable from "../svg_drawable";
@@ -13,6 +14,7 @@ export default class Line implements SvgDrawable{
     private _arrowSize: number
     // 权重
     private _weight: number
+    private _outerStyle: CSSProperties
 
     constructor(start: Node, end: Node, id: string){
         this._start = start
@@ -22,6 +24,7 @@ export default class Line implements SvgDrawable{
         this._id = id
         this._arrowSize = 10
         this._weight = 0
+        this._outerStyle = {}
     }
     getJSXElement(){
         const { x: x1, y: y1 } = this._start.position;
@@ -77,11 +80,17 @@ export default class Line implements SvgDrawable{
                     y2={arrowTipY}
                     stroke={this._color}
                     strokeWidth={this._strokeWidth}
+                    style={{
+                        ...this._outerStyle
+                    }}
                 />
                 {/* 箭头 (三角形) */}
                 <polygon
                     points={`${arrowTipX},${arrowTipY} ${leftX},${leftY} ${rightX},${rightY}`}
                     fill={this._color}
+                    style={{
+                        ...this._outerStyle
+                    }}
                 />
                  <text
                     x={normalX}
@@ -146,6 +155,13 @@ export default class Line implements SvgDrawable{
     }
     set arrowSize(size: number){
         this._arrowSize = size
+    }
+
+    get outerStyle(){
+        return this._outerStyle
+    }
+    set outerStyle(s: CSSProperties){
+        this._outerStyle = s
     }
 }
 

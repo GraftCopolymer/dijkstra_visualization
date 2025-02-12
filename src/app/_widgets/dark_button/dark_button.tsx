@@ -1,14 +1,16 @@
-import React from "react";
-import style from './dark_button.module.css'
+import React, { CSSProperties } from "react";
+import s from './dark_button.module.css'
 
 export default function DarkButton({
     children,
-    onClick
+    onClick,
+    style
 }: {
     children?: React.ReactNode,
     onClick?: React.MouseEventHandler<HTMLButtonElement>
+    style?: CSSProperties
 }){
-    return <button className={style.darkButton} onClick={onClick}>
+    return <button className={s.darkButton} onClick={onClick} style={style}>
         {children}
     </button>
 }

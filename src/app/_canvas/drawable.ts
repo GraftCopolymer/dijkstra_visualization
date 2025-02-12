@@ -22,6 +22,9 @@ export default interface Drawable{
     get color(): string
     set color(color: string)
 
+    get outerStyle(): CSSProperties
+    set outerStyle(style: CSSProperties)
+
     getDynamicStyle: () => CSSProperties
     getJSXElement: () => JSX.Element
 

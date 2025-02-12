@@ -1,16 +1,19 @@
 'use client'
 
 import { JSX, RefObject, useEffect, useImperativeHandle, useRef, useState } from "react"
-import { DijCanvasAPI } from "./infinite_canvas"
-import Utils from "../_utils/graph_utils"
+import { DijCanvasAPI } from "./dij_canvas"
+import Utils from "../_utils/utils"
 import Node, { NodeBuilder } from "../_canvas/node/node"
 import style from './page.module.css'
 import nodeDetailStyle from './node_detail.module.css'
 import DarkButton from "../_widgets/dark_button/dark_button"
 import { ArrowLeftOutlined, PlusOutlined, RightOutlined } from "@ant-design/icons"
-import CanvasEventEmitter, { CanvasEvents, EndDijEvent, RemoveNodeEvent, StartDijEvent } from "../_canvas/events"
+import CanvasEventEmitter, { CanvasEvents, RemoveNodeEvent, StopDijEvent } from "../_canvas/events"
 import IdGenerator from "../_canvas/id_generator"
 import Line, { LineBuilder } from "../_canvas/line/line"
+import { DijAlgorithm } from "../_utils/algorithm"
+import { DijController, Status } from "../_canvas/dij_controller"
+import DarkInput from "../_widgets/dark_input/dark_input"
 
 export interface ControlPanelAPI{
     /// 展示指定的Node对象的信息
@@ -27,20 +30,21 @@ export interface ControlPanelAPI{
 /// 展示结点详细信息的组件
 /// 还可以对结点进行一些特定的操作
 function NodeDetail(
-    {node, canvasRef, panelAPIRef , onBack, onStartDij, onEndDij}: 
+    {node, canvasRef, panelAPIRef , onBack}: 
     {
         node: Node,
         canvasRef: RefObject<DijCanvasAPI | null>, 
         panelAPIRef: RefObject<ControlPanelAPI | null> ,
-        onBack?: () => void
-        onStartDij?: (start: Node) => void
-        onEndDij: () => void
+        onBack?: () => void,
     }
 ){
     const [position, setPosition] = useState(node.position)
     const [id, setId] = useState(node.id)
     const [selectingNode, setSelectingNode] = useState(false)
-    const [dijing, setDijing] = useState(false)
+    const [dijing, setDijing] = useState(DijController.dij)
+    // 每步时间间隔
+    const [stepInterval, setStepInterval] = useState(DijController.stepInterval)
+    const lastStepInterval = useRef(stepInterval)
 
     useEffect(()=>{
         const onUpdateNode = ()=>{
@@ -57,21 +61,24 @@ function NodeDetail(
                 }
             }
         }
-        const onStartDij = (context: StartDijEvent) => {
-            setDijing(true)
-        }
-        const onEndDij = (context: EndDijEvent) => {
-            setDijing(false)
+        const onDijChange = async () => {
+            console.log("准备启动Dij")
+            if(!DijController.dij || DijController.status == Status.success) {
+                console.log([DijController.dij, DijController.status])
+                return
+            }
+            setDijing(DijController.dij)
+            const {adjacencyMatrix, adjacencyList, nodeMap, indexMap} = DijAlgorithm.computeAdjacencyStructures(node)
+            console.log("启动Dij")
+            await DijAlgorithm.dijWithAdMatrix(node, adjacencyMatrix, nodeMap, indexMap, canvasRef)
         }
 
         node.addListener(onUpdateNode)
         CanvasEventEmitter.subscribe<RemoveNodeEvent>(CanvasEvents.removeNodeEvent, onRemoveNode)
-        CanvasEventEmitter.subscribe<StartDijEvent>(CanvasEvents.startDijEvent, onStartDij)
-        CanvasEventEmitter.subscribe<EndDijEvent>(CanvasEvents.endDijEvent, onEndDij)
+        DijController.addListener(onDijChange)
         return () => {
             CanvasEventEmitter.unsubscribe<RemoveNodeEvent>(CanvasEvents.removeNodeEvent, onRemoveNode)
-            CanvasEventEmitter.unsubscribe<StartDijEvent>(CanvasEvents.startDijEvent, onStartDij)
-            CanvasEventEmitter.unsubscribe<EndDijEvent>(CanvasEvents.endDijEvent, onEndDij)
+            DijController.removeListener(onDijChange)
             node.removeListener(onUpdateNode)
         }
     }, [node])
@@ -96,7 +103,65 @@ function NodeDetail(
         canvasRef.current.deleteNode(node)
     }
 
-    return dijing ? <DarkButton onClick={() => {if(onEndDij) onEndDij()}}>
+    function onStartDij(){
+        setDijing(true)
+        DijController.dij = true
+    }
+
+    function onEndDij(){
+        setDijing(false)
+        CanvasEventEmitter.publish<StopDijEvent>(CanvasEvents.stopDijEvent, {context: {}})
+        // 恢复结点状态
+        if(!canvasRef.current) return
+        // 获取所有Node对象
+        const nodes = canvasRef.current!.getStates().drawableList.map(d => {
+            if(d instanceof Node){
+                return d
+            }
+        })
+        nodes.forEach(d => {
+            d!.outerStyle = {
+                transition: '',
+                backgroundColor: d!.color
+            }
+            d!.floatingText = ""
+        })
+        // 恢复直线状态
+        const lines = canvasRef.current!.getStates().svgDrawableList.map(s => {
+            if(s instanceof Line){
+                return s
+            }
+        })
+        lines.forEach(l => {
+            l!.outerStyle = {
+                ...l!.outerStyle,
+                fill: "white",
+                stroke: "white",
+                transition: ""
+            }
+        })
+        DijController.dij = false
+    }
+
+    function handleStepIntervalInput(e: any){
+        setStepInterval(e.target.value)
+    }
+
+    function handleBlur(e: any){
+        // 校验数据合法性
+        console.log("##触发输入框的失焦事件")
+        console.log(`DijController.dij状态: ${DijController.dij}`)
+        const number = parseFloat(e.target.value)
+        if(Number.isNaN(number) || e.target.value === "" || number < 0) {
+            setStepInterval(lastStepInterval.current)
+        }
+        else{
+            DijController.stepInterval = number
+            lastStepInterval.current = number
+        }
+    }
+
+    return dijing ? <DarkButton onClick={() => {onEndDij()}}>
             停止可视化
         </DarkButton> : <div>
             <ArrowLeftOutlined 
@@ -136,7 +201,10 @@ function NodeDetail(
             }
             {
                 createControlItem("模拟", <div>
-                    <DarkButton onClick={() => {if(onStartDij) onStartDij(node)}}>从该点开始迪杰斯特拉算法</DarkButton>
+                    <span>每步时间间隔: </span><DarkInput onInput={handleStepIntervalInput} onBlur={handleBlur} value={stepInterval}/><span>秒</span>
+                    <DarkButton style={{
+                        display: "block"
+                    }} onClick={() => {onStartDij()}}>从该点开始迪杰斯特拉算法</DarkButton>
                 </div>)
             }
         </div>
@@ -175,10 +243,10 @@ export default function ControlPanel({
         'default': () => {
             return <div>
                 {createControlItem(
-                    "创建图",
+                    "创建",
                     <>
                         <DarkButton onClick={createNode}>
-                            快速创建 <PlusOutlined />
+                            创建结点 <PlusOutlined />
                         </DarkButton>
                         <DarkButton onClick={() => genRandomDirectedMap()}>
                             生成随机有向图 
@@ -210,6 +278,15 @@ export default function ControlPanel({
             setTitleHeight(
                 Utils.getTitleBarHeight()
             )
+        }
+
+        const onDijChange = () => {
+            setDijing(DijController.dij)
+        }
+        DijController.addListener(onDijChange)
+
+        return () => {
+            DijController.removeListener(onDijChange)
         }
     }, [])
 
@@ -270,7 +347,8 @@ export default function ControlPanel({
     }
 
     /// 缩小控制面板
-    function toggleMinimize(){
+    function toggleMinimize(e: React.MouseEvent){
+        e.stopPropagation(); // 阻止事件冒泡
         setMinimize(!minimize)
     }
 
@@ -302,18 +380,6 @@ export default function ControlPanel({
         canvasRef.current!.drawNode(node)
     }
 
-    function onStartDij(startNode: Node){
-        if(!canvasRef.current) return 
-        canvasRef.current.startDij()
-        setDijing(true)
-    }
-
-    function onEndDij(){
-        if(!canvasRef.current) return 
-        canvasRef.current.endDij()
-        setDijing(false)
-    }
-
     /// 控制面板API
     function displayNode(node: Node){
         panelContents.current['node'] = ()=>{
@@ -321,9 +387,7 @@ export default function ControlPanel({
             node={node} 
             canvasRef={canvasRef} 
             panelAPIRef={panelAPIRef} 
-            onBack={() => displayDefault()}
-            onStartDij={onStartDij}
-            onEndDij={onEndDij}></NodeDetail>
+            onBack={() => displayDefault()}></NodeDetail>
         }
         setCurrentContent('node')
     }
