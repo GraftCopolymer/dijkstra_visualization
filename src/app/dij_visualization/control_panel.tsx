@@ -84,6 +84,7 @@ function NodeDetail(
         }
     }, [node])
 
+
     
 
     function onConnectNode(e: any){
