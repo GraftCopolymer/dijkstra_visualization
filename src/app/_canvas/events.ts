@@ -16,6 +16,8 @@ export const CanvasEvents = {
     startDijEvent: "startDijEvent",
     endDijEvent: "endDijEvent",
     stopDijEvent: "stopDijEvent",
+    mouseOverDrawableEvent: "mouseOverDrawableEvent",
+    mouseOutDrawableEvent: "mouseOutDrawableEvent"
 }
 
 type EventCallBack<T extends CanvasEvent = CanvasEvent> = (context: T) => void
@@ -113,6 +115,14 @@ export interface EndDijEvent extends CanvasEvent{
 
 export interface StopDijEvent extends CanvasEvent{
     context: {}
+}
+
+export interface MouseOverDrawableEvent extends CanvasEvent{
+    context: Drawable
+}
+
+export interface MouseOutDrawableEvent extends CanvasEvent{
+    context: Drawable
 }
 
 /// 添加可绘制Svg对象

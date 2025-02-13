@@ -6,7 +6,7 @@ import style from './page.module.css'
 import Node from '../_canvas/node/node'
 import SvgDrawable from '../_canvas/svg_drawable'
 import Line, { LineBuilder } from '../_canvas/line/line'
-import CanvasEventEmitter, { CanvasEvents, ClickCanvasEvent, ClickDrawableEvent, EndDijEvent, StartDijEvent } from '../_canvas/events'
+import CanvasEventEmitter, { CanvasEvents, ClickCanvasEvent, ClickDrawableEvent, EndDijEvent, MouseOutDrawableEvent, MouseOverDrawableEvent, StartDijEvent } from '../_canvas/events'
 import IdGenerator from '../_canvas/id_generator'
 import { DijController } from '../_canvas/dij_controller'
 import Utils from '../_utils/utils'
@@ -62,6 +62,8 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
         const renderObj = <div 
         onMouseDown={(e: any) => {onDragDrawable(e, d)}} 
         onClick={(e: any) => {onClickDrawable(e, d)}}
+        onMouseOver={(e: any) => onMouseOver(d)}
+        onMouseOut={(e: any) => onMouseOut(d)}
         key={d.id} 
         style={{
             position: "absolute",
@@ -106,6 +108,16 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
         drawLine(
             line
         )
+    }
+
+    /// 鼠标移动到Drawable对象之上
+    function onMouseOver(drawable: Drawable){
+        CanvasEventEmitter.publish<MouseOverDrawableEvent>(CanvasEvents.mouseOverDrawableEvent, {context: drawable})
+    }
+
+    /// 鼠标移出Drawable对象
+    function onMouseOut(drawable: Drawable){
+        CanvasEventEmitter.publish<MouseOutDrawableEvent>(CanvasEvents.mouseOutDrawableEvent, {context: drawable})
     }
 
     /// 开始拖动Drawable对象

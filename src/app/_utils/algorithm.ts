@@ -77,6 +77,7 @@ export class DijAlgorithm{
                     transition: `all ${DijController.stepInterval}s`,
                     backgroundColor: "rgba(123, 123, 123, 0.8)"
                 }
+                d!.floatingText = `${distances[nodeMap.get(d!)!] || Infinity}`
             }
             else{
                 // 高亮起点
@@ -85,16 +86,15 @@ export class DijAlgorithm{
                     transition: `all ${DijController.stepInterval}s`,
                     backgroundColor: DijController.startNodeColor
                 }
-                // d!.floatingText = ''
+                d!.floatingText = ''
             }
-            d!.floatingText = `${distances[nodeMap.get(d!)!] || Infinity}`
         })
 
         lines.forEach(l => {
             l!.outerStyle = {
                 transition: `stroke ${DijController.stepInterval / 2}s, fill ${DijController.stepInterval / 2}s`
             }
-            l!.color = "grey"
+            l!.color = DijController.defaultColor
         })
 
         await DijAlgorithm.pause(DijController.stepInterval * 1000)
@@ -128,15 +128,15 @@ export class DijAlgorithm{
                     const curLine = currentNode!.lines.start.find(l => l.end!.id === curEndNode!.id)
                     if(DijController.dij) canvasRef.current!.updateLineOuterStyle(curLine!.id, {
                         ...curLine!.outerStyle,
-                        stroke: "red",
-                        fill: "red"
+                        stroke: DijController.selectedColor,
+                        fill: DijController.selectedColor
                     })
                     console.log(`已更新直线颜色, 权重: ${curLine!.weight}`)
                     await DijAlgorithm.pause(DijController.stepInterval * 1000)
                     if(DijController.dij) canvasRef.current!.updateNodeFloatingText(curEndNode!.id, `${newDist}`)
                     if(DijController.dij) canvasRef.current?.updateNodeOuterStyle(curEndNode!.id, {
                         ...curEndNode!.outerStyle,
-                        backgroundColor: "red"
+                        backgroundColor: DijController.selectedColor
                     })
                     await DijAlgorithm.pause(DijController.stepInterval * 1000)
 
@@ -171,8 +171,6 @@ export class DijAlgorithm{
             }
             shortestPaths.set(targetNode, path)
         }
-
-        
 
         // 将最终结果保存到算法控制器中
         if(priorityQueue.length != 0){
