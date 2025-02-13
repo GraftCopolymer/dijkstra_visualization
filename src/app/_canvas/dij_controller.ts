@@ -37,6 +37,10 @@ class DijControllerClass extends Listenable{
         return this._dij
     }
     set dij(dij: boolean){
+        // 算法准备启动
+        if(!this._dij && dij){
+            this._status = Status.running
+        }
         this._dij = dij
         if(!this._dij){
             this._status = Status.interrupted

@@ -45,6 +45,8 @@ function NodeDetail(
     // 每步时间间隔
     const [stepInterval, setStepInterval] = useState(DijController.stepInterval)
     const lastStepInterval = useRef(stepInterval)
+    // 算法进行状态
+    const [status, setStatus] = useState<Status>(DijController.status)
 
     useEffect(()=>{
         const onUpdateNode = ()=>{
@@ -62,14 +64,13 @@ function NodeDetail(
             }
         }
         const onDijChange = async () => {
-            console.log("准备启动Dij")
+            setStatus(DijController.status)
             if(!DijController.dij || DijController.status == Status.success) {
                 console.log([DijController.dij, DijController.status])
                 return
             }
             setDijing(DijController.dij)
             const {adjacencyMatrix, adjacencyList, nodeMap, indexMap} = DijAlgorithm.computeAdjacencyStructures(node)
-            console.log("启动Dij")
             await DijAlgorithm.dijWithAdMatrix(node, adjacencyMatrix, nodeMap, indexMap, canvasRef)
         }
 
@@ -149,8 +150,6 @@ function NodeDetail(
 
     function handleBlur(e: any){
         // 校验数据合法性
-        console.log("##触发输入框的失焦事件")
-        console.log(`DijController.dij状态: ${DijController.dij}`)
         const number = parseFloat(e.target.value)
         if(Number.isNaN(number) || e.target.value === "" || number < 0) {
             setStepInterval(lastStepInterval.current)
@@ -161,53 +160,56 @@ function NodeDetail(
         }
     }
 
-    return dijing ? <DarkButton onClick={() => {onEndDij()}}>
-            停止可视化
-        </DarkButton> : <div>
-            <ArrowLeftOutlined 
-            onClick={onBack}
-            className={nodeDetailStyle.backButton} />
-            {
-                createControlItem(`结点id`, <p style={{
-                    fontWeight: "bold",
-                    margin: "5px"
-                }}>
-                    {id}
-                </p>)
-            }
-            {
-                createControlItem("坐标", <p style={{
-                    fontWeight: "bold",
-                    margin: "5px"
-                }}>
-                    ({position.x}, {position.y})
-                </p>)
-            }
-            {
-                createControlItem("操作", <div>
-                    {selectingNode ? <p>
-                        请点击另一顶点
-                        <DarkButton onClick={onCancelSelect}>
-                            结束连接
-                        </DarkButton>
-                    </p> : <DarkButton onClick={onConnectNode}>
-                        连接另一顶点
-                    </DarkButton>}
-                    {
-                        selectingNode ? <div></div> :
-                        <DarkButton onClick={onDeleteNode}>删除该顶点</DarkButton>
-                    }
-                </div>)
-            }
-            {
-                createControlItem("模拟", <div>
-                    <span>每步时间间隔: </span><DarkInput onInput={handleStepIntervalInput} onBlur={handleBlur} value={stepInterval}/><span>秒</span>
-                    <DarkButton style={{
-                        display: "block"
-                    }} onClick={() => {onStartDij()}}>从该点开始迪杰斯特拉算法</DarkButton>
-                </div>)
-            }
-        </div>
+    return dijing ? <div>
+            <DarkButton onClick={() => {onEndDij()}}>
+                停止可视化
+            </DarkButton>
+            {status == Status.running ? <p>算法进行中...</p> : (status == Status.success ? <p>算法执行完毕, 将鼠标置于节点上即可查看最短路径</p> : <p>算法中断</p>)}
+        </div>  : <div>
+        <ArrowLeftOutlined 
+        onClick={onBack}
+        className={nodeDetailStyle.backButton} />
+        {
+            createControlItem(`结点id`, <p style={{
+                fontWeight: "bold",
+                margin: "5px"
+            }}>
+                {id}
+            </p>)
+        }
+        {
+            createControlItem("坐标", <p style={{
+                fontWeight: "bold",
+                margin: "5px"
+            }}>
+                ({position.x}, {position.y})
+            </p>)
+        }
+        {
+            createControlItem("操作", <div>
+                {selectingNode ? <p>
+                    请点击另一顶点
+                    <DarkButton onClick={onCancelSelect}>
+                        结束连接
+                    </DarkButton>
+                </p> : <DarkButton onClick={onConnectNode}>
+                    连接另一顶点
+                </DarkButton>}
+                {
+                    selectingNode ? <div></div> :
+                    <DarkButton onClick={onDeleteNode}>删除该顶点</DarkButton>
+                }
+            </div>)
+        }
+        {
+            createControlItem("模拟", <div>
+                <span>每步时间间隔: </span><DarkInput onInput={handleStepIntervalInput} onBlur={handleBlur} value={stepInterval}/><span>秒</span>
+                <DarkButton style={{
+                    display: "block"
+                }} onClick={() => {onStartDij()}}>从该点开始迪杰斯特拉算法</DarkButton>
+            </div>)
+        }
+    </div>
             
 }
 
