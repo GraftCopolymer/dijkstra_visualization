@@ -8,7 +8,7 @@ import style from './page.module.css'
 import nodeDetailStyle from './node_detail.module.css'
 import DarkButton from "../_widgets/dark_button/dark_button"
 import { ArrowLeftOutlined, PlusOutlined, RightOutlined } from "@ant-design/icons"
-import CanvasEventEmitter, { CanvasEvents, RemoveNodeEvent, StopDijEvent } from "../_canvas/events"
+import CanvasEventEmitter, { CanvasEvents, MouseOutDrawableEvent, MouseOverDrawableEvent, RemoveNodeEvent, StopDijEvent } from "../_canvas/events"
 import IdGenerator from "../_canvas/id_generator"
 import Line, { LineBuilder } from "../_canvas/line/line"
 import { DijAlgorithm } from "../_utils/algorithm"
@@ -83,6 +83,7 @@ function NodeDetail(
             node.removeListener(onUpdateNode)
         }
     }, [node])
+
     
 
     function onConnectNode(e: any){
@@ -281,14 +282,52 @@ export default function ControlPanel({
                 Utils.getTitleBarHeight()
             )
         }
-
         const onDijChange = () => {
             setDijing(DijController.dij)
         }
+
+        /// 算法成功结束后，鼠标指针悬浮于结点上时高亮最短路径
+        const highlightShortestPath = (context: MouseOverDrawableEvent) => {
+            if(DijController.status !== Status.success) return 
+            if(!(context.context instanceof Node)) return
+            const node = context.context as Node
+            const path: Line[] | undefined = DijController.shortestPaths.get(node)
+            if(!path) return 
+            // 高亮路径
+            path.forEach(l => {
+                canvasRef.current!.updateLineOuterStyle(l.id, {
+                    ...l.outerStyle,
+                    stroke: DijController.highlightColor,
+                    fill: DijController.highlightColor
+                })
+            })
+        }
+        /// 鼠标移走后取消高亮最短路径
+        const cancelHighlightShortestPath = (context: MouseOutDrawableEvent) => {
+            if(DijController.status !== Status.success) return 
+            if(DijController.status !== Status.success) return 
+            if(!(context.context instanceof Node)) return
+            const node = context.context as Node
+            const path: Line[] | undefined = DijController.shortestPaths.get(node)
+            if(!path) return 
+            // 取消高亮路径
+            path.forEach(l => {
+                canvasRef.current!.updateLineOuterStyle(l.id, {
+                    ...l.outerStyle,
+                    stroke: DijController.selectedColor,
+                    fill: DijController.selectedColor
+                })
+            })
+        }
+
         DijController.addListener(onDijChange)
+        CanvasEventEmitter.subscribe<MouseOverDrawableEvent>(CanvasEvents.mouseOverDrawableEvent, highlightShortestPath)
+        CanvasEventEmitter.subscribe<MouseOutDrawableEvent>(CanvasEvents.mouseOutDrawableEvent, cancelHighlightShortestPath)
 
         return () => {
             DijController.removeListener(onDijChange)
+            CanvasEventEmitter.unsubscribe<MouseOverDrawableEvent>(CanvasEvents.mouseOverDrawableEvent, highlightShortestPath)
+            CanvasEventEmitter.unsubscribe<MouseOutDrawableEvent>(CanvasEvents.mouseOutDrawableEvent, cancelHighlightShortestPath)
         }
     }, [])
 

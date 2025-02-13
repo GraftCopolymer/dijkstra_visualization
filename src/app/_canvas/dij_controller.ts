@@ -22,6 +22,12 @@ class DijControllerClass extends Listenable{
     private _distances: Map<number, number>
     // 路径: 结点 -> 路径列表
     private _shortestPaths: Map<Node, Line[]>
+    // 高亮路径颜色
+    private _highlightColor: string
+    // 正常状态路径颜色
+    private _defaultColor: string
+    // 算法过程中被选择的线段和顶点颜色
+    private _selectedColor: string
 
     constructor(dij: boolean){
         super()
@@ -31,6 +37,9 @@ class DijControllerClass extends Listenable{
         this._status = Status.interrupted
         this._distances = new Map()
         this._shortestPaths = new Map()
+        this._highlightColor = "white"
+        this._defaultColor = "grey"
+        this._selectedColor = "red"
     }
 
     get dij(){
@@ -70,6 +79,27 @@ class DijControllerClass extends Listenable{
     set status(s: Status){
         this._status = s
         this.notifyListeners()
+    }
+
+    get highlightColor(){
+        return this._highlightColor
+    }
+    set highlightColor(color: string){
+        this._highlightColor = color
+    }
+
+    get defaultColor(){
+        return this._defaultColor
+    }
+    set defaultColor(color: string){
+        this._defaultColor = color
+    }
+
+    get selectedColor(){
+        return this._selectedColor
+    }
+    set selectedColor(color: string){
+        this._selectedColor = color
     }
 
     get distances(){
