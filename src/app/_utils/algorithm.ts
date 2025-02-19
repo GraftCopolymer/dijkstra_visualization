@@ -1,7 +1,7 @@
 import { RefObject } from "react";
 import Node from "../_canvas/node/node";
 import { DijCanvasAPI } from "../dij_visualization/dij_canvas";
-import { DijController, Status } from "../_canvas/dij_controller";
+import { DijController, DijMode, Status } from "../_canvas/dij_controller";
 import Line from "../_canvas/line/line";
 import CanvasEventEmitter, { CanvasEvents, StopDijEvent } from "../_canvas/events";
 
@@ -30,6 +30,18 @@ export class DijAlgorithm{
             }
             CanvasEventEmitter.subscribe<StopDijEvent>(CanvasEvents.stopDijEvent, onStopDij)
         });
+    }
+
+    static async dijkstra(startNode: Node, canvasRef: RefObject<DijCanvasAPI | null>){
+        const {adjacencyMatrix, adjacencyList, nodeMap, indexMap} = DijAlgorithm.computeAdjacencyStructures(startNode)
+        if(DijController.mode == DijMode.adjMatrix){
+            console.log("使用邻接矩阵")
+            await DijAlgorithm.dijWithAdMatrix(startNode, adjacencyMatrix, nodeMap, indexMap, canvasRef)
+        }
+        else if(DijController.mode == DijMode.adjList){
+            console.log("使用邻接链表")
+            await DijAlgorithm.dijWithAdLinkedList(startNode, adjacencyList, nodeMap, indexMap, canvasRef)
+        }
     }
 
     /// 使用邻接矩阵的迪杰斯特拉算法
@@ -189,8 +201,150 @@ export class DijAlgorithm{
     }
 
     /// 使用邻接链表的迪杰斯特拉算法
-    static dijWithAdLinkedList(){
+    static async dijWithAdLinkedList(
+        startNode: Node,
+        adjacencyList: Map<Node, {node: Node, weight: number}[]>,
+        nodeMap: Map<Node, number>,
+        indexMap: Map<number, Node>,
+        canvasRef: RefObject<DijCanvasAPI | null>
+    ): Promise<{ distanceFromOrigin: Map<number, number>; shortestPaths: Map<Node, Line[]>; } | undefined> {
+        if (!canvasRef.current) return;
 
+        const nodes = canvasRef.current!.getStates().drawableList.map(d => {
+            if (d instanceof Node) return d;
+        });
+        const lines = canvasRef.current!.getStates().svgDrawableList.map(l => {
+            if (l instanceof Line) return l;
+        });
+
+        const n = nodeMap.size;
+        const startIndex = nodeMap.get(startNode)!;
+        
+        // 初始化数据结构
+        const distances: number[] = new Array(n).fill(Infinity);
+        const visited: boolean[] = new Array(n).fill(false);
+        const predecessor: number[] = new Array(n).fill(-1);
+        const priorityQueue: [number, number][] = [];
+
+        // 设置起点
+        distances[startIndex] = 0;
+        predecessor[startIndex] = -1;
+        priorityQueue.push([0, startIndex]);
+
+        // 初始化节点样式
+        nodes.forEach(d => {
+            if (!d) return;
+            if (d !== startNode) {
+                d.outerStyle = {
+                    ...d.outerStyle,
+                    transition: `all ${DijController.stepInterval}s`,
+                    backgroundColor: "rgba(123, 123, 123, 0.8)"
+                };
+                d.floatingText = `${distances[nodeMap.get(d)!]}`;
+            } else {
+                d.outerStyle = {
+                    ...d.outerStyle,
+                    transition: `all ${DijController.stepInterval}s`,
+                    backgroundColor: DijController.startNodeColor
+                };
+                d.floatingText = '';
+            }
+        });
+
+        // 初始化边样式
+        lines.forEach(l => {
+            if (!l) return;
+            l.outerStyle = {
+                transition: `stroke ${DijController.stepInterval / 2}s, fill ${DijController.stepInterval / 2}s`
+            };
+            l.color = DijController.defaultColor;
+        });
+
+        await DijAlgorithm.pause(DijController.stepInterval * 1000);
+
+        while (priorityQueue.length > 0 && DijController.dij) {
+            priorityQueue.sort((a, b) => a[0] - b[0]);
+            const [currentDist, uIndex] = priorityQueue.shift()!;
+            if (visited[uIndex]) continue;
+
+            const currentNode = indexMap.get(uIndex)!;
+            visited[uIndex] = true;
+
+            // 获取当前节点的邻接节点列表
+            const neighbors = adjacencyList.get(currentNode) || [];
+            for (const neighbor of neighbors) {
+                const vIndex = nodeMap.get(neighbor.node)!;
+                const edgeWeight = neighbor.weight;
+
+                // 跳过已访问节点
+                if (visited[vIndex]) continue;
+
+                const newDist = currentDist + edgeWeight;
+
+                if (newDist < distances[vIndex]) {
+                    // 查找对应的边对象
+                    const curLine = currentNode.lines.start.find(l => l.end!.id === neighbor.node.id);
+                    if (curLine && DijController.dij) {
+                        canvasRef.current!.updateLineOuterStyle(curLine.id, {
+                            ...curLine.outerStyle,
+                            stroke: DijController.selectedColor,
+                            fill: DijController.selectedColor
+                        });
+                    }
+
+                    await DijAlgorithm.pause(DijController.stepInterval * 1000);
+                    
+                    if (DijController.dij) {
+                        canvasRef.current!.updateNodeFloatingText(neighbor.node.id, `${newDist}`);
+                        canvasRef.current?.updateNodeOuterStyle(neighbor.node.id, {
+                            ...neighbor.node.outerStyle,
+                            backgroundColor: DijController.selectedColor
+                        });
+                    }
+
+                    await DijAlgorithm.pause(DijController.stepInterval * 1000);
+
+                    distances[vIndex] = newDist;
+                    predecessor[vIndex] = uIndex;
+                    priorityQueue.push([newDist, vIndex]);
+                }
+            }
+        }
+
+        // 构建结果
+        const distanceFromOrigin = new Map<number, number>();
+        distances.forEach((dist, index) => {
+            distanceFromOrigin.set(indexMap.get(index)!.id, dist);
+        });
+
+        const shortestPaths = new Map<Node, Line[]>();
+        for (let i = 0; i < n; i++) {
+            const path: Line[] = [];
+            let targetNode = indexMap.get(i)!;
+            let curNode = targetNode;
+            let preIndex = i;
+
+            while (predecessor[preIndex] !== -1) {
+                const preNode = indexMap.get(predecessor[preIndex])!;
+                const line = preNode.lines.start.find(l => l.end!.id === curNode.id)!;
+                path.push(line);
+                curNode = preNode;
+                preIndex = predecessor[preIndex];
+            }
+            shortestPaths.set(targetNode, path.reverse()); // 调整为从起点到终点的顺序
+        }
+
+        // 处理算法状态
+        if (priorityQueue.length !== 0) {
+            DijController.status = Status.interrupted;
+            console.log("算法被终止");
+        } else {
+            DijController.status = Status.success;
+            DijController.distances = distanceFromOrigin;
+            DijController.shortestPaths = shortestPaths;
+            console.log("算法成功结束，最短距离表：", distanceFromOrigin);
+            return { distanceFromOrigin, shortestPaths };
+        }
     }
 
     static getConnectedComponent(startNode: Node): Node[] {

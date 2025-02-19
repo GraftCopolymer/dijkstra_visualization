@@ -12,7 +12,7 @@ import CanvasEventEmitter, { CanvasEvents, MouseOutDrawableEvent, MouseOverDrawa
 import IdGenerator from "../_canvas/id_generator"
 import Line, { LineBuilder } from "../_canvas/line/line"
 import { DijAlgorithm } from "../_utils/algorithm"
-import { DijController, Status } from "../_canvas/dij_controller"
+import { DijController, DijMode, Status } from "../_canvas/dij_controller"
 import DarkInput from "../_widgets/dark_input/dark_input"
 
 export interface ControlPanelAPI{
@@ -70,8 +70,9 @@ function NodeDetail(
                 return
             }
             setDijing(DijController.dij)
-            const {adjacencyMatrix, adjacencyList, nodeMap, indexMap} = DijAlgorithm.computeAdjacencyStructures(node)
-            await DijAlgorithm.dijWithAdMatrix(node, adjacencyMatrix, nodeMap, indexMap, canvasRef)
+            // const {adjacencyMatrix, adjacencyList, nodeMap, indexMap} = DijAlgorithm.computeAdjacencyStructures(node)
+            // await DijAlgorithm.dijWithAdLinkedList(node, adjacencyList, nodeMap, indexMap, canvasRef)
+            await DijAlgorithm.dijkstra(node, canvasRef)
         }
 
         node.addListener(onUpdateNode)
@@ -83,8 +84,6 @@ function NodeDetail(
             node.removeListener(onUpdateNode)
         }
     }, [node])
-
-
     
 
     function onConnectNode(e: any){
@@ -106,8 +105,15 @@ function NodeDetail(
         canvasRef.current.deleteNode(node)
     }
 
-    function onStartDij(){
+    function startWithAdjMatrix(){
         setDijing(true)
+        DijController.mode = DijMode.adjMatrix
+        DijController.dij = true
+    }
+
+    function startWithAdjList(){
+        setDijing(true)
+        DijController.mode = DijMode.adjList
         DijController.dij = true
     }
 
@@ -208,7 +214,10 @@ function NodeDetail(
                 <span>每步时间间隔: </span><DarkInput onInput={handleStepIntervalInput} onBlur={handleBlur} value={stepInterval}/><span>秒</span>
                 <DarkButton style={{
                     display: "block"
-                }} onClick={() => {onStartDij()}}>从该点开始迪杰斯特拉算法</DarkButton>
+                }} onClick={() => {startWithAdjMatrix()}}>从该点开始迪杰斯特拉算法(邻接矩阵)</DarkButton>
+                <DarkButton style={{
+                    display: "block"
+                }} onClick={() => {startWithAdjList()}}>从该点开始迪杰斯特拉算法(邻接链表)</DarkButton>
             </div>)
         }
     </div>

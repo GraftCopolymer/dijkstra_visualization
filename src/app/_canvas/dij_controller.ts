@@ -8,9 +8,15 @@ export enum Status {
     running
 }
 
-class DijControllerClass extends Listenable{
-    
+/// 算法模式枚举
+/// adjMatrix: 使用邻接矩阵
+/// adjList: 使用邻接链表
+export enum DijMode{
+    adjMatrix,
+    adjList
+}
 
+class DijControllerClass extends Listenable{
     private _dij: boolean
     // 每步的时间间隔，单位为秒
     private _stepInterval: number
@@ -28,6 +34,7 @@ class DijControllerClass extends Listenable{
     private _defaultColor: string
     // 算法过程中被选择的线段和顶点颜色
     private _selectedColor: string
+    private _mode: DijMode
 
     constructor(dij: boolean){
         super()
@@ -40,6 +47,7 @@ class DijControllerClass extends Listenable{
         this._highlightColor = "white"
         this._defaultColor = "grey"
         this._selectedColor = "red"
+        this._mode = DijMode.adjList
     }
 
     get dij(){
@@ -55,6 +63,13 @@ class DijControllerClass extends Listenable{
             this._status = Status.interrupted
         }
         this.notifyListeners()
+    }
+
+    get mode(){
+        return this._mode
+    }
+    set mode(mode: DijMode){
+        this._mode = mode
     }
 
     get stepInterval(){
