@@ -259,6 +259,13 @@ export default function ControlPanel({
     const [minimize, setMinimize] = useState(false)
     // 是否正在进行算法可视化
     const [dijing, setDijing] = useState(false)
+
+    const nodeNumberRef = useRef(8)
+    const [nodeNumber, setNodeNumber] = useState(nodeNumberRef.current)
+
+    const lineDensityRef = useRef(0.3)
+    const [lineDensity, setLineDensity] = useState(lineDensityRef.current)
+
     // 是否正在选择另一顶点
     const originNode = useRef<Node | null>(null)
     // 鼠标位置和面板(left, top)的偏移
@@ -277,9 +284,21 @@ export default function ControlPanel({
                         <DarkButton onClick={createNode}>
                             创建结点 <PlusOutlined />
                         </DarkButton>
-                        <DarkButton onClick={() => genRandomDirectedMap()}>
-                            生成随机有向图 
-                        </DarkButton>
+                        <div>
+                            <span className={style.tipText}>结点数</span>
+                            <input type="range" min={4} max={100} step={1} value={nodeNumberRef.current} onInput={handleNodeNumberRangeChange} />
+                            <span>{nodeNumberRef.current}</span>
+                        </div>
+                        <div>
+                            <span className={style.tipText}>线密度</span>
+                            <input type="range" min={0.01} max={0.5} step={0.01} value={lineDensityRef.current} onInput={handleLineDensityRangeChange} />
+                            <span>{lineDensityRef.current}</span>
+                        </div>
+                        <div>
+                            <DarkButton onClick={() => genRandomDirectedMap(nodeNumberRef.current, nodeNumberRef.current, lineDensityRef.current)}>
+                                生成
+                            </DarkButton>
+                        </div>
                     </>
                 )}
                 {
@@ -356,6 +375,18 @@ export default function ControlPanel({
             CanvasEventEmitter.unsubscribe<MouseOutDrawableEvent>(CanvasEvents.mouseOutDrawableEvent, cancelHighlightShortestPath)
         }
     }, [])
+
+    function handleNodeNumberRangeChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const newValue = parseInt(e.target.value, 10); // 添加基数参数
+        nodeNumberRef.current = newValue
+        setNodeNumber(newValue);
+    }
+
+    function handleLineDensityRangeChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const newValue = parseFloat(e.target.value); // 添加基数参数
+        lineDensityRef.current = newValue
+        setLineDensity(newValue);
+    }
 
     function handleMouseDown(e: any){
         e.stopPropagation()
@@ -512,14 +543,14 @@ export default function ControlPanel({
         return adMatrix;
     }
 
-    function genRandomDirectedMap(minNodes: number = 4, maxNodes: number = 8, minWeight: number = 20, maxWeight: number = 100){
+    function genRandomDirectedMap(minNodes: number = 8, maxNodes: number = 10, lineDensity: number = 0.02, minWeight: number = 20, maxWeight: number = 100){
         if(!canvasRef.current) return 
         // 清空画布
         canvasRef.current.clearCanvas()
         IdGenerator.reset()
         const nodeNumber = Utils.random(minNodes, maxNodes)
         
-        const adMatrix = generateRandomAdjMatrix(nodeNumber, 0.1, minWeight, maxWeight)
+        const adMatrix = generateRandomAdjMatrix(nodeNumber, lineDensity, minWeight, maxWeight)
 
         // 根据邻接矩阵生成图
         // 生成所有的结点
