@@ -1,6 +1,8 @@
 # Run
 
-本项目使用React 19 + Next.js 15.1.4，请确保Node版本为23+，在开发本项目时使用的Node版本为23.5.0
+本项目可直接在 https://www.graftcopolymer.love:233 使用，若无本地运行需求可直接访问该URL
+
+项目使用React 19 + Next.js 15.1.4，请确保Node版本为23+，在开发本项目时使用的Node版本为23.5.0
 
 进入项目根目录，执行:
 
