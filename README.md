@@ -15,7 +15,7 @@ npm run dev
 
 > React版本较新，如遇依赖报错属正常情况，不影响使用
 
-# Build
+# Build & Deploy
 
 部署本项目需要将代码传输到服务器上，请在服务器上clone本项目
 
