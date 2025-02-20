@@ -156,6 +156,11 @@ function NodeDetail(
         setStepInterval(e.target.value)
     }
 
+    function handleChangeNodeColor(e: any){
+        if(!canvasRef.current) return
+        canvasRef.current.updateNodeColor(node.id, e.target.value)
+    }
+
     function handleBlur(e: any){
         // 校验数据合法性
         const number = parseFloat(e.target.value)
@@ -172,7 +177,7 @@ function NodeDetail(
             <DarkButton onClick={() => {onEndDij()}}>
                 停止可视化
             </DarkButton>
-            {status == Status.running ? <p>算法进行中...</p> : (status == Status.success ? <p>算法执行完毕, 将鼠标置于节点上即可查看最短路径</p> : <p>算法中断</p>)}
+            {status == Status.running ? <div className={style.tipText}>算法进行中...</div> : (status == Status.success ? <div className={style.tipText}>算法执行完毕, 将鼠标置于节点上即可查看最短路径</div> : <p>算法中断</p>)}
         </div>  : <div>
         <ArrowLeftOutlined 
         onClick={onBack}
@@ -196,22 +201,33 @@ function NodeDetail(
         {
             createControlItem("操作", <div>
                 {selectingNode ? <p>
-                    请点击另一顶点
+                    <span className={style.tipText}>请点击另一顶点</span>
                     <DarkButton onClick={onCancelSelect}>
                         结束连接
                     </DarkButton>
                 </p> : <DarkButton onClick={onConnectNode}>
                     连接另一顶点
-                </DarkButton>}
+                </DarkButton>
+                }
                 {
                     selectingNode ? <div></div> :
                     <DarkButton onClick={onDeleteNode}>删除该顶点</DarkButton>
+                }
+                {
+                    selectingNode ? <div></div> : 
+                    <div>
+                        <span className={style.tipText}>结点颜色:</span>
+                        <input type="color" 
+                            value={Utils.colorNameToHex(node.color)}
+                            onChange={handleChangeNodeColor}
+                        ></input>
+                    </div>
                 }
             </div>)
         }
         {
             createControlItem("模拟", <div>
-                <span>每步时间间隔: </span><DarkInput onInput={handleStepIntervalInput} onBlur={handleBlur} value={stepInterval}/><span>秒</span>
+                <span className={style.tipText}>每步时间间隔: </span><DarkInput onInput={handleStepIntervalInput} onBlur={handleBlur} value={stepInterval}/><span>秒</span>
                 <DarkButton style={{
                     display: "block"
                 }} onClick={() => {startWithAdjMatrix()}}>从该点开始迪杰斯特拉算法(邻接矩阵)</DarkButton>
@@ -426,7 +442,7 @@ export default function ControlPanel({
         const node = new NodeBuilder()
             .position({x: 0, y: 0})
             .radius(25)
-            .color("red")
+            .color("darkred")
             .build()
         canvasRef.current!.drawNode(node)
     }
@@ -515,6 +531,7 @@ export default function ControlPanel({
             nodes.push(
                 new NodeBuilder()
                 .position({x: Utils.random( -canvasSize.width / 2 + radius * 2, canvasSize.width / 2 - radius * 2), y: Utils.random(-canvasSize.height / 2 + radius * 2, canvasSize.height / 2 - radius * 2)})
+                .color("darkred")
                 .radius(25)
                 .build()
             )

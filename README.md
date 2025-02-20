@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Run
 
-## Getting Started
+本项目使用React 19 + Next.js 15.1.4，请确保Node版本为23+，在开发本项目时使用的Node版本为23.5.0
 
-First, run the development server:
+进入项目根目录，执行:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+运行开发服务器，使用浏览器进入`http://localhost:3000`即可使用
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> React版本较新，如遇依赖报错属正常情况，不影响使用
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Build
 
-## Learn More
+部署本项目需要将代码传输到服务器上，请在服务器上clone本项目
 
-To learn more about Next.js, take a look at the following resources:
+````bash
+git clone https://github.com/GraftCopolymer/dijkstra_visualization.git
+````
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+然后cd到项目根目录下，运行
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run build
+```
 
-## Deploy on Vercel
+等待构建完毕，使用以下命令即可启动服务
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run start
+```

@@ -46,7 +46,7 @@ class DijControllerClass extends Listenable{
         this._shortestPaths = new Map()
         this._highlightColor = "white"
         this._defaultColor = "grey"
-        this._selectedColor = "red"
+        this._selectedColor = "darkblue"
         this._mode = DijMode.adjList
     }
 

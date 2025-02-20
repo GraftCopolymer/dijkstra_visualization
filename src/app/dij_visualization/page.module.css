@@ -14,6 +14,13 @@
     z-index: 1000;
 }
 
+/* 提示文字样式 */
+.tipText{
+    font-size: 14px;
+    padding: 8px;
+    color: #eeeeee;
+}
+
 /* 可视化演示主体页面 */
 .playground{
     width: 100%;
@@ -27,10 +34,10 @@
     left: 30px;
     border-radius: 10px;
     background-color: grey;
-    width: 370px;
-    height: 600px;
+    width: 340px;
+    height: 500px;
     z-index: 999;
-    overflow: hidden;
+    overflow: scroll;
     box-shadow: 2px 1px 8px 1px rgba(0,0,0,0.3);
     transition: all 0.5s;
 }

@@ -46,6 +46,8 @@ export interface DijCanvasAPI{
     // endDij: () => void
     // 修改结点外部样式
     updateNodeOuterStyle: (id: number, data: any) => void
+    // 更新结点颜色
+    updateNodeColor: (id: number, newColor: string) => void
     // 修改直线外部样式
     updateLineOuterStyle: (id: string, data: any) => void
     // 修改结点悬浮文本
@@ -326,6 +328,17 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
         }))
     }
 
+    function updateNodeColor(id: number, color: string){
+        setDrawableList(drawableList.map(d => {
+            if(d.id == id){
+                // 重置outerStyle
+                d.outerStyle = {}
+                d.color = color
+            }
+            return d
+        }))
+    }
+
     function updateLineOuterStyle(id: string, data: any){
         setSvgDrawableList(svgDrawableList.map(l => {
             if(l.id == id && l instanceof Line){
@@ -361,6 +374,7 @@ export default function DijCanvas({ref}: {ref?: Ref<DijCanvasAPI>}){
             // startDij,
             // endDij
             updateNodeOuterStyle,
+            updateNodeColor,
             updateLineOuterStyle,
             updateNodeFloatingText
         }
