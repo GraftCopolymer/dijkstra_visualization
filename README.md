@@ -19,6 +19,8 @@ npm run dev
 
 部署本项目需要将代码传输到服务器上，请在服务器上clone本项目
 
+项目的GitHub地址: https://github.com/GraftCopolymer/dijkstra_visualization.git
+
 ````bash
 git clone https://github.com/GraftCopolymer/dijkstra_visualization.git
 ````
