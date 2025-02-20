@@ -11,6 +11,8 @@ npm run dev
 
 运行开发服务器，使用浏览器进入`http://localhost:3000`即可使用
 
+建议使用最新版的Chrome浏览器运行
+
 > React版本较新，如遇依赖报错属正常情况，不影响使用
 
 # Build
